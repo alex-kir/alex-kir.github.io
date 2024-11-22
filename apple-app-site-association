@@ -1,0 +1,19 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "BF9TN7JGBD.com.booksrun.booksrun",
+                "paths": [
+                    "/open_mobile_store/*"
+                ]
+            },
+            {
+                "appID": "BF9TN7JGBD.com.booksrun.booksrun",
+                "paths": [
+                    "/open_mobile_app/*"
+                ]
+            }
+        ]
+    }
+}
