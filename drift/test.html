@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Drift Metrika - test</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+	<style type="text/css">
+		html,
+		body {
+			height: 100%;
+		}
+
+		#container {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	</style>
+</head>
+
+<body>
+
+	<!-- <div id="info">
+		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - webgl raymarching example<br />
+		reflect by <a href="https://github.com/gam0022" target="_blank" rel="noopener">gam0022</a> (<a
+			href="http://qiita.com/gam0022/items/03699a07e4a4b5f2d41f" target="_blank" rel="noopener">article</a>)
+	</div> -->
+	<div id="container">
+		<canvas id="canvas"></canvas>
+	</div>
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+	<script type="module">
+
+		import * as THREE from 'three';
+
+		import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+		import { Line2 } from 'three/addons/lines/Line2.js';
+		import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+		import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
+		//import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+		import Stats from 'three/addons/libs/stats.module.js';
+		import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+
+
+
+		let textureLoader;
+		let dolly, camera, scene, renderer;
+		let geometry, material, mesh;
+		let stats, clock;
+
+		let car1, car2, json, controls;
+
+		const canvas = document.querySelector('#canvas');
+
+		init();
+
+		function init() {
+
+			renderer = new THREE.WebGLRenderer({ canvas: canvas });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.setAnimationLoop(animate);
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.BasicShadowMap;
+
+			window.addEventListener('resize', onWindowResize);
+
+			// THREE.Scene
+			scene = new THREE.Scene();
+			// scene.background = new THREE.Color(0xbfd1e5);
+			scene.background = new THREE.Color(0x449966);
+
+			//scene.fog = new THREE.Fog(0x99DDFF, 5000, 10000);
+			scene.fog = new THREE.Fog(scene.background, 40, 70);
+
+			const light = new THREE.DirectionalLight(0xffffff, 2);
+
+			light.position.set(1000, 1500, 0);
+
+			light.castShadow = true;
+
+			light.shadow.camera.left = -150;
+			light.shadow.camera.right = 150;
+			light.shadow.camera.top = 150;
+			light.shadow.camera.bottom = -150;
+			light.shadow.camera.far = 3000;
+			light.shadow.mapSize.width = 2048;
+			light.shadow.mapSize.height = 2048;
+
+			light.shadow.bias = -0.000001;
+
+			light.shadow.camera.updateProjectionMatrix();
+
+			scene.add(light);
+
+			textureLoader = new THREE.TextureLoader();
+
+			// 
+
+
+			var loader = new FBXLoader();
+			loader.load('./models/ferarri/model.fbx', function (model) {
+
+				car1 = model.getObjectByName('Ferrari_Testarossa');
+
+				car1.castShadow = true;
+				car1.position.y = 0;
+				car1.scale.setScalar(1);
+
+				car2 = car1.clone();
+
+
+				car1.position.x = -15;
+				car1.rotateZ((-15 / 180) * Math.PI);
+				scene.add(car1);
+
+				car2.position.x = 15;
+				scene.add(car2);
+
+
+				// const car = model.getObjectByName('Ferrari_Testarossa');
+				// const mesh = new THREE.Mesh(car.geometry, car.material);
+				// scene.add(mesh);
+			});
+
+			// dolly = new THREE.Group();
+			// scene.add(dolly);
+
+			clock = new THREE.Clock();
+
+			camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 1, 10000);
+			camera.position.y = 400;
+			camera.position.x = 400;
+
+			// dolly.add(camera);
+
+			// geometry = new THREE.PlaneGeometry( 2.0, 2.0 );
+			// material = new THREE.RawShaderMaterial( {
+			// 	uniforms: {
+			// 		resolution: { value: new THREE.Vector2( canvas.width, canvas.height ) },
+			// 		cameraWorldMatrix: { value: camera.matrixWorld },
+			// 		cameraProjectionMatrixInverse: { value: camera.projectionMatrixInverse.clone() }
+			// 	},
+			// 	vertexShader: document.getElementById( 'vertex_shader' ).textContent,
+			// 	fragmentShader: document.getElementById( 'fragment_shader' ).textContent
+			// } );
+			// mesh = new THREE.Mesh( geometry, material );
+			// mesh.frustumCulled = false;
+			// scene.add( mesh );
+
+			// LINE
+
+
+
+			//scene.add(createShape());
+
+
+
+
+			// Controls
+			// const controls = new FirstPersonControls(camera, canvas);
+			//controls.enableZoom = false;
+
+			// console.log(renderer);
+
+			controls = new OrbitControls(camera, canvas);
+			controls.minDistance = 2;
+			controls.maxDistance = 20;
+			controls.minPolarAngle = (10 / 180) * Math.PI;
+			controls.maxPolarAngle = (80 / 180) * Math.PI;
+			controls.target.set(0, 2.5, 0);
+			// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			// controls.dampingFactor = 0.05;
+
+			// GUI
+			// const gui = new GUI();
+			// gui.add(config, 'saveImage').name('Save Image');
+			// gui.add(config, 'resolution', ['256', '512', '800', 'full']).name('Resolution').onChange(onWindowResize);
+
+			stats = new Stats();
+			document.body.appendChild(stats.dom);
+
+			loadData();
+
+		}
+
+		function onWindowResize() {
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			// if (config.resolution === 'full') {
+
+			// 	renderer.setSize(window.innerWidth, window.innerHeight);
+
+			// } else {
+
+			// 	renderer.setSize(parseInt(config.resolution), parseInt(config.resolution));
+
+			// }
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			// material.uniforms.resolution.value.set( canvas.width, canvas.height );
+			// material.uniforms.cameraProjectionMatrixInverse.value.copy( camera.projectionMatrixInverse );
+
+		}
+
+		function animate() {
+
+			stats.begin();
+
+			const elapsedTime = clock.getElapsedTime();
+
+			if (json && car1 && car2) {
+
+				const tm = elapsedTime % json.duration;
+				updateCar(car1, json.red.points, tm);
+				updateCar(car2, json.blue.points, tm);
+
+				controls.target.set((car1.position.x + car2.position.x) / 2, 2.5, (car1.position.z + car2.position.z) / 2);
+
+
+				// if (car1) {
+
+				// 	updateCar(car1, json.red.points);
+
+				// 	car1.rotation.z = (elapsedTime / 2);
+				// }
+
+				// if (car2) {
+
+				// 	car2.position.z = Math.sin(elapsedTime / 2) * 10;
+				// }
+			}
+			//camera.position.set( Math.sin( time / 10 ) * r, 1500 + 1000 * Math.cos( time / 5 ), Math.cos( time / 10 ) * r );
+			// camera.position.set(1000, 500, 0);
+			// camera.lookAt(0, 0, 0);
+
+			// dolly.position.z = - elapsedTime;
+
+			controls.update();
+
+			renderer.render(scene, camera);
+
+			stats.end();
+
+		}
+
+		function lerp(x1, x2, t) {
+			return x1 + (x2 - x1) * t;
+		}
+
+		function updateCar(car, points, tm) {
+			if (car) {
+				let last = points[0];
+				for (const p of points) {
+					if (p.sec > tm) {
+						const t = (tm - last.sec) / (p.sec - last.sec);
+
+						car.position.x = lerp(last.x, p.x, t);
+						car.position.z = -lerp(last.y, p.y, t);
+
+						// car.rotation.z = lerp(last.rot, p.rot, t) + Math.PI / 2;
+						car.rotation.z = p.rot + Math.PI / 2;
+
+						break;
+					}
+					last = p;
+				}
+			}
+		}
+
+		function createLine(points, color) {
+			const positions = [];
+			const colors = [];
+			//const color = new THREE.Color();
+			//const point = new THREE.Vector3();
+
+			// for (let i = 0; i <= 360; i = i + 10) {
+
+			// 	const t = Math.PI * i / 180;
+
+			// 	const x = Math.cos(t) * 1000;
+			// 	const z = Math.sin(t) * 1000;
+
+			// 	positions.push(x, 30, z);
+
+			// 	color.setHSL(t / 5, 1.0, 0.5, THREE.SRGBColorSpace);
+			// 	colors.push(color.r, color.g, color.b);
+			// 	// colors.push(0, 0, 0);
+			// }
+
+			for (const p of points) {
+				positions.push(p.x, 0.01, -p.y);
+				colors.push(color.r, color.g, color.b);
+			}
+
+			const geometry = new LineGeometry();
+			geometry.setPositions(positions);
+			// geometry.setColors(colors);
+
+			const matLine = new LineMaterial({
+				color: color,
+
+				// worldUnits: 100,
+				// needsUpdate: true,
+
+				linewidth: 1, // in world units with size attenuation, pixels otherwise
+				// vertexColors: true,
+
+				dashed: false,
+				alphaToCoverage: true,
+			});
+
+			const line = new Line2(geometry, matLine);
+			line.computeLineDistances();
+			line.scale.set(1, 1, 1);
+			return line;
+		}
+
+		function createShape() {
+			const x = 0, y = 0;
+
+			const heartShape = new THREE.Shape();
+
+			heartShape.moveTo(x + 5, y + 5);
+			heartShape.bezierCurveTo(x + 5, y + 5, x + 4, y, x, y);
+			heartShape.bezierCurveTo(x - 6, y, x - 6, y + 7, x - 6, y + 7);
+			heartShape.bezierCurveTo(x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19);
+			heartShape.bezierCurveTo(x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7);
+			heartShape.bezierCurveTo(x + 16, y + 7, x + 16, y, x + 10, y);
+			heartShape.bezierCurveTo(x + 7, y, x + 5, y + 5, x + 5, y + 5);
+
+			const geometry = new THREE.ShapeGeometry(heartShape);
+			const material = new THREE.MeshPhongMaterial({
+				color: 0x555555,
+				//color:0xffffff,
+				depthWrite: true,
+				transparent: true,
+				opacity: 0.75,
+			});
+			// material.side = THREE.DoubleSide;
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.y = 0;
+			mesh.rotation.x = deg(-90);
+			mesh.scale.set(25, 25, 25);
+			mesh.receiveShadow = true;
+			return mesh;
+		}
+
+		function createGround(points1, points2) {
+
+			const pp = points1.concat(points2);
+			// console.log("pp:");
+			// console.log(pp);
+			const minX = pp.reduce((a, b) => a.x < b.x ? a : b).x;
+			const maxX = pp.reduce((a, b) => a.x > b.x ? a : b).x;
+			const minY = pp.reduce((a, b) => a.y < b.y ? a : b).y;
+			const maxY = pp.reduce((a, b) => a.y > b.y ? a : b).y;
+			const diffX = maxX - minX;
+			const diffY = maxY - minY;
+			const border = Math.max(diffX, diffY) * 0.4;
+
+			// console.log(`minX:${minX}  maxX:${maxX}  minY:${minY}  maxY:${maxY}  `);
+
+			// const shape = new THREE.Shape();
+			// shape.moveTo(minX - border, minY - border);
+			// shape.lineTo(minX - border, maxY + border);
+			// shape.lineTo(maxX + border, maxY + border);
+			// shape.lineTo(maxX + border, minY - border);
+
+			const texture1 = textureLoader.load('./textures/concrete-wall-texture.jpg');
+			texture1.wrapS = texture1.wrapT = THREE.RepeatWrapping;
+			texture1.repeat.set(16, 16);
+
+			// console.log(texture1);
+
+			const material1 = new THREE.MeshPhongMaterial({
+				color: 0xffffff,
+				map: texture1,
+				depthWrite: true
+			});
+
+			const ground = new THREE.Mesh(
+				new THREE.PlaneGeometry(diffX + border, diffY + border),
+				material1,
+			);
+
+			ground.receiveShadow = true;
+			ground.rotation.x = -Math.PI / 2;
+			ground.position.y = -0.001;
+
+			return ground;
+
+		}
+
+		async function loadData() {
+			const response = await fetch('data4.json');
+			json = await response.json();
+			// console.log(json);
+
+			scene.add(createGround(json.red.points, json.blue.points));
+			scene.add(createLine(json.red.points, new THREE.Color(255, 0, 0)));
+			scene.add(createLine(json.blue.points, new THREE.Color(0, 0, 255)));
+		}
+
+		function deg(val) {
+			return Math.PI * val / 180;
+		}
+
+	</script>
+
+</body>
+
+</html>
