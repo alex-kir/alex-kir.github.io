@@ -15,5 +15,10 @@
                 ]
             }
         ]
-    }
+    },
+    "webcredentials": {
+        "apps": [
+          "BF9TN7JGBD.com.booksrun.booksrun"
+        ]
+      }
 }
