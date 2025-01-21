@@ -52,17 +52,19 @@
 		import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 		import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
+
 		//import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
 		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 		import Stats from 'three/addons/libs/stats.module.js';
 		import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+		import { ShadowMapViewer } from 'three/addons/utils/ShadowMapViewer.js';
 
 
 
 
 		let textureLoader;
-		let dolly, camera, scene, renderer;
+		let camera, scene, renderer, light, lightShadowMapViewer, lightTarget;
 		let geometry, material, mesh;
 		let stats, clock;
 
@@ -79,7 +81,7 @@
 			renderer.setSize(window.innerWidth, window.innerHeight);
 			renderer.setAnimationLoop(animate);
 			renderer.shadowMap.enabled = true;
-			renderer.shadowMap.type = THREE.BasicShadowMap;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap;//BasicShadowMap;
 
 			window.addEventListener('resize', onWindowResize);
 
@@ -91,25 +93,10 @@
 			//scene.fog = new THREE.Fog(0x99DDFF, 5000, 10000);
 			scene.fog = new THREE.Fog(scene.background, 40, 70);
 
-			const light = new THREE.DirectionalLight(0xffffff, 2);
+			initLight(scene);
 
-			light.position.set(1000, 1500, 0);
 
-			light.castShadow = true;
 
-			light.shadow.camera.left = -150;
-			light.shadow.camera.right = 150;
-			light.shadow.camera.top = 150;
-			light.shadow.camera.bottom = -150;
-			light.shadow.camera.far = 3000;
-			light.shadow.mapSize.width = 2048;
-			light.shadow.mapSize.height = 2048;
-
-			light.shadow.bias = -0.000001;
-
-			light.shadow.camera.updateProjectionMatrix();
-
-			scene.add(light);
 
 			textureLoader = new THREE.TextureLoader();
 
@@ -119,26 +106,22 @@
 			var loader = new FBXLoader();
 			loader.load('./models/ferarri/model.fbx', function (model) {
 
-				car1 = model.getObjectByName('Ferrari_Testarossa');
+				const c1 = model.getObjectByName('Ferrari_Testarossa');
 
-				car1.castShadow = true;
-				car1.position.y = 0;
-				car1.scale.setScalar(1);
+				c1.castShadow = true;
+				c1.position.y = 0;
+				c1.rotation.z = deg(90);
+				c1.scale.setScalar(1);
 
-				car2 = car1.clone();
+				const c2 = c1.clone();
 
-
-				car1.position.x = -15;
-				car1.rotateZ((-15 / 180) * Math.PI);
+				car1 = new THREE.Group();
+				car1.add(c1);
 				scene.add(car1);
 
-				car2.position.x = 15;
+				car2 = new THREE.Group();
+				car2.add(c2);
 				scene.add(car2);
-
-
-				// const car = model.getObjectByName('Ferrari_Testarossa');
-				// const mesh = new THREE.Mesh(car.geometry, car.material);
-				// scene.add(mesh);
 			});
 
 			// dolly = new THREE.Group();
@@ -146,9 +129,7 @@
 
 			clock = new THREE.Clock();
 
-			camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 1, 10000);
-			camera.position.y = 400;
-			camera.position.x = 400;
+			initCamera();
 
 			// dolly.add(camera);
 
@@ -175,20 +156,7 @@
 
 
 
-			// Controls
-			// const controls = new FirstPersonControls(camera, canvas);
-			//controls.enableZoom = false;
 
-			// console.log(renderer);
-
-			controls = new OrbitControls(camera, canvas);
-			controls.minDistance = 2;
-			controls.maxDistance = 20;
-			controls.minPolarAngle = (10 / 180) * Math.PI;
-			controls.maxPolarAngle = (80 / 180) * Math.PI;
-			controls.target.set(0, 2.5, 0);
-			// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-			// controls.dampingFactor = 0.05;
 
 			// GUI
 			// const gui = new GUI();
@@ -203,25 +171,9 @@
 		}
 
 		function onWindowResize() {
-
 			renderer.setSize(window.innerWidth, window.innerHeight);
-
-			// if (config.resolution === 'full') {
-
-			// 	renderer.setSize(window.innerWidth, window.innerHeight);
-
-			// } else {
-
-			// 	renderer.setSize(parseInt(config.resolution), parseInt(config.resolution));
-
-			// }
-
 			camera.aspect = window.innerWidth / window.innerHeight;
 			camera.updateProjectionMatrix();
-
-			// material.uniforms.resolution.value.set( canvas.width, canvas.height );
-			// material.uniforms.cameraProjectionMatrixInverse.value.copy( camera.projectionMatrixInverse );
-
 		}
 
 		function animate() {
@@ -236,37 +188,95 @@
 				updateCar(car1, json.red.points, tm);
 				updateCar(car2, json.blue.points, tm);
 
-				controls.target.set((car1.position.x + car2.position.x) / 2, 2.5, (car1.position.z + car2.position.z) / 2);
+				const cx = (car1.position.x + car2.position.x) / 2;
+				const cz = (car1.position.z + car2.position.z) / 2;
 
-
-				// if (car1) {
-
-				// 	updateCar(car1, json.red.points);
-
-				// 	car1.rotation.z = (elapsedTime / 2);
-				// }
-
-				// if (car2) {
-
-				// 	car2.position.z = Math.sin(elapsedTime / 2) * 10;
-				// }
+				controls.target.set(cx, 2.5, cz);
+				updateLight(cx, cz);
 			}
-			//camera.position.set( Math.sin( time / 10 ) * r, 1500 + 1000 * Math.cos( time / 5 ), Math.cos( time / 10 ) * r );
-			// camera.position.set(1000, 500, 0);
-			// camera.lookAt(0, 0, 0);
 
-			// dolly.position.z = - elapsedTime;
 
 			controls.update();
 
 			renderer.render(scene, camera);
 
-			stats.end();
+			//lightShadowMapViewer.render(renderer);
 
+			stats.end();
+		}
+
+		function initCamera() {
+
+			camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 1, 10000);
+			camera.position.y = 400;
+			camera.position.x = 400;
+
+			// Controls
+			// const controls = new FirstPersonControls(camera, canvas);
+			//controls.enableZoom = false;
+
+			// console.log(renderer);
+
+			controls = new OrbitControls(camera, canvas);
+			controls.minDistance = 2;
+			controls.maxDistance = 20;
+			controls.minPolarAngle = deg(30);
+			controls.maxPolarAngle = deg(80);
+			controls.target.set(0, 2.5, 0);
+			// controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			// controls.dampingFactor = 0.05;
+		}
+
+		function initLight() {
+			light = new THREE.DirectionalLight(0xffffff, 2);
+
+			light.position.set(0, 10, -10);
+
+			light.castShadow = true;
+
+			const sz = 15;
+			light.shadow.camera.left = -sz;
+			light.shadow.camera.right = sz;
+			light.shadow.camera.top = -sz;
+			light.shadow.camera.bottom = sz;
+
+			light.shadow.camera.near = 0;
+			light.shadow.camera.far = 30;
+			light.shadow.mapSize.width = 512;
+			light.shadow.mapSize.height = 512;
+
+			light.shadow.bias = -0.00001;
+
+			light.shadow.camera.updateProjectionMatrix();
+
+			scene.add(light);
+
+			lightTarget = new THREE.Object3D();
+			scene.add(lightTarget);
+
+			light.target = lightTarget;
+
+			//lightShadowMapViewer = new ShadowMapViewer(light);
+		}
+
+		function updateLight(cx, cz) {
+			light.position.set(cx, 10, cz);
+			lightTarget.position.set(cx, 0, cz - 10);
 		}
 
 		function lerp(x1, x2, t) {
 			return x1 + (x2 - x1) * t;
+		}
+
+		function lerp_ang(x1, x2, t) {
+
+			while (x1 - Math.PI > x2)
+				x1 = x1 - Math.PI * 2;
+
+			while (x1 + Math.PI < x2)
+				x1 = x1 + Math.PI * 2;
+
+			return lerp(x1, x2, t);
 		}
 
 		function updateCar(car, points, tm) {
@@ -279,9 +289,7 @@
 						car.position.x = lerp(last.x, p.x, t);
 						car.position.z = -lerp(last.y, p.y, t);
 
-						// car.rotation.z = lerp(last.rot, p.rot, t) + Math.PI / 2;
-						car.rotation.z = p.rot + Math.PI / 2;
-
+						car.rotation.y = lerp_ang(last.rot, p.rot, t);
 						break;
 					}
 					last = p;
@@ -291,27 +299,11 @@
 
 		function createLine(points, color) {
 			const positions = [];
-			const colors = [];
-			//const color = new THREE.Color();
-			//const point = new THREE.Vector3();
-
-			// for (let i = 0; i <= 360; i = i + 10) {
-
-			// 	const t = Math.PI * i / 180;
-
-			// 	const x = Math.cos(t) * 1000;
-			// 	const z = Math.sin(t) * 1000;
-
-			// 	positions.push(x, 30, z);
-
-			// 	color.setHSL(t / 5, 1.0, 0.5, THREE.SRGBColorSpace);
-			// 	colors.push(color.r, color.g, color.b);
-			// 	// colors.push(0, 0, 0);
-			// }
+			// const colors = [];
 
 			for (const p of points) {
 				positions.push(p.x, 0.01, -p.y);
-				colors.push(color.r, color.g, color.b);
+				// colors.push(color.r, color.g, color.b);
 			}
 
 			const geometry = new LineGeometry();
@@ -405,8 +397,9 @@
 				material1,
 			);
 
+			// ground.castShadow = true;
 			ground.receiveShadow = true;
-			ground.rotation.x = -Math.PI / 2;
+			ground.rotation.x = deg(-90);
 			ground.position.y = -0.001;
 
 			return ground;
