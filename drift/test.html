@@ -19,6 +19,31 @@
 			align-items: center;
 			justify-content: center;
 		}
+
+		#info_red {
+			background-color: rgba(255, 0, 0, 0.3);
+			position: absolute;
+			right: 10px;
+			top: 10px;
+			width: 150px;
+			height: 50px;
+			text-align: center;
+			z-index: 100;
+			display:block;
+		}
+
+		#info_blue {
+			background-color: rgba(0, 0, 255, 0.3);
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			width: 150px;
+			height: 75px;
+			text-align: center;
+			z-index: 100;
+			display:block;
+		}
+
 	</style>
 </head>
 
@@ -32,6 +57,9 @@
 	<div id="container">
 		<canvas id="canvas"></canvas>
 	</div>
+
+	<div id="info_red" /> </div>
+	<div id="info_blue" /> </div>
 
 	<script type="importmap">
 			{
@@ -185,8 +213,8 @@
 			if (json && car1 && car2) {
 
 				const tm = elapsedTime % json.duration;
-				updateCar(car1, json.red.points, tm);
-				updateCar(car2, json.blue.points, tm);
+				updateCar(car1, json.red.points, tm, document.getElementById("info_red"));
+				updateCar(car2, json.blue.points, tm, document.getElementById("info_blue"));
 
 				const cx = (car1.position.x + car2.position.x) / 2;
 				const cz = (car1.position.z + car2.position.z) / 2;
@@ -279,7 +307,7 @@
 			return lerp(x1, x2, t);
 		}
 
-		function updateCar(car, points, tm) {
+		function updateCar(car, points, tm, infoElem) {
 			if (car) {
 				let last = points[0];
 				for (const p of points) {
@@ -290,6 +318,14 @@
 						car.position.z = -lerp(last.y, p.y, t);
 
 						car.rotation.y = lerp_ang(last.rot, p.rot, t);
+
+						const info = [
+							`Speed: ${lerp(last.speed, p.speed, t).toFixed(0)}`,
+							`Angle: ${Math.abs(lerp(last.angle, p.angle, t).toFixed(0))}`
+						];
+						if (last.dist)
+							info.push(`Dist: ${lerp(last.dist, p.dist, t).toFixed(1)}m`);
+						infoElem.innerHTML = info.join('<br/>');
 						break;
 					}
 					last = p;
