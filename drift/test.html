@@ -407,7 +407,10 @@
 		}
 
 		async function loadData() {
-			const response = await fetch('data4.json');
+			const fileName = window.location.hash
+				? window.location.hash.substring(1)
+				: 'data4';
+			const response = await fetch(fileName + ".json");
 			json = await response.json();
 			// console.log(json);
 
