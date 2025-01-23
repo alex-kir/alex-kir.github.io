@@ -20,14 +20,15 @@
 			justify-content: center;
 		}
 
-		#info_red, #info_blue { 
+		#info_red,
+		#info_blue {
 			position: absolute;
 			right: 10px;
 			width: 150px;
 			height: 50px;
 			text-align: center;
 			z-index: 100;
-			display:block;
+			display: block;
 		}
 
 		#info_red {
@@ -41,10 +42,44 @@
 			height: 75px;
 		}
 
-		#button_minus_one {
-
+		#button_minus_one,
+		#button_minus_half,
+		#button_zero,
+		#button_plus_half,
+		#button_plus_one {
+			position: absolute;
+			bottom: 10px;
+			width: 50px;
+			height: 50px;
+			text-align: center;
+			z-index: 100;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: rgba(0, 0, 0, 0.4);
+			user-select: none;
+			font-size: 20px;
 		}
 
+		#button_minus_one {
+			right: 250px;
+		}
+
+		#button_minus_half {
+			right: 190px;
+		}
+
+		#button_zero {
+			right: 130px;
+		}
+
+		#button_plus_half {
+			right: 70px;
+		}
+
+		#button_plus_one {
+			right: 10px;
+		}
 	</style>
 </head>
 
@@ -59,14 +94,16 @@
 		<canvas id="canvas"></canvas>
 	</div>
 
-	<div id="info_red"/> </div>
-	<div id="info_blue"/> </div>
-	
-	<!-- <div id="button_minus_one"/> -1</div>
-	<div id="button_minus_half"/> -0.5</div>
-	<div id="button_zero"/> 0</div>
-	<div id="button_plus_half"/>+0.5 </div>
-	<div id="button_plus_one"/> +1</div> -->
+	<div id="info_red" />
+	</div>
+	<div id="info_blue" />
+	</div>
+
+	<div id="button_minus_one" />⏴⏴</div>
+	<div id="button_minus_half" />⏴</div>
+	<div id="button_zero" />⏸</div>
+	<div id="button_plus_half" />⏵</div>
+	<div id="button_plus_one" />⏵⏵</div>
 
 	<script type="importmap">
 			{
@@ -104,9 +141,19 @@
 		let stats, clock;
 
 		let car1, car2, json, controls;
-		let animtionTimer = 1;
+		let timeScale = 1;
 
 		const canvas = document.querySelector('#canvas');
+		const info_red = document.getElementById("info_red");
+		const info_blue = document.getElementById("info_blue");
+
+		document.getElementById("button_minus_one").onclick = function () { timeScale = -1 };
+		document.getElementById("button_minus_half").onclick = function () { timeScale = -0.35 };
+		document.getElementById("button_zero").onclick = function () { timeScale = 0 };
+		document.getElementById("button_plus_half").onclick = function () { timeScale = 0.35 };
+		document.getElementById("button_plus_one").onclick = function () { timeScale = 1 };
+
+
 
 		init();
 
@@ -212,15 +259,24 @@
 			camera.updateProjectionMatrix();
 		}
 
+		let elapsedTime = 0;
+
+		function mod(a, b) {
+			return ((a % b) + b) % b;
+		}
+
 		function animate() {
 
 			stats.begin();
 
-			const elapsedTime = clock.getElapsedTime();
+			const deltaTime = clock.getDelta();
+			//const elapsedTime = clock.getElapsedTime();
+			elapsedTime = elapsedTime + deltaTime * timeScale;
 
 			if (json && car1 && car2) {
 
-				const tm = elapsedTime % json.duration;
+				const tm = mod(elapsedTime, json.duration);
+
 				updateCar(car1, json.red.points, tm, document.getElementById("info_red"));
 				updateCar(car2, json.blue.points, tm, document.getElementById("info_blue"));
 
