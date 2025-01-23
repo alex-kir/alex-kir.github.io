@@ -20,11 +20,9 @@
 			justify-content: center;
 		}
 
-		#info_red {
-			background-color: rgba(255, 0, 0, 0.3);
+		#info_red, #info_blue { 
 			position: absolute;
 			right: 10px;
-			top: 10px;
 			width: 150px;
 			height: 50px;
 			text-align: center;
@@ -32,16 +30,19 @@
 			display:block;
 		}
 
+		#info_red {
+			background-color: rgba(255, 0, 0, 0.3);
+			top: 10px;
+		}
+
 		#info_blue {
 			background-color: rgba(0, 0, 255, 0.3);
-			position: absolute;
-			left: 10px;
-			bottom: 10px;
-			width: 150px;
+			top: 70px;
 			height: 75px;
-			text-align: center;
-			z-index: 100;
-			display:block;
+		}
+
+		#button_minus_one {
+
 		}
 
 	</style>
@@ -58,8 +59,14 @@
 		<canvas id="canvas"></canvas>
 	</div>
 
-	<div id="info_red" /> </div>
-	<div id="info_blue" /> </div>
+	<div id="info_red"/> </div>
+	<div id="info_blue"/> </div>
+	
+	<!-- <div id="button_minus_one"/> -1</div>
+	<div id="button_minus_half"/> -0.5</div>
+	<div id="button_zero"/> 0</div>
+	<div id="button_plus_half"/>+0.5 </div>
+	<div id="button_plus_one"/> +1</div> -->
 
 	<script type="importmap">
 			{
@@ -97,6 +104,7 @@
 		let stats, clock;
 
 		let car1, car2, json, controls;
+		let animtionTimer = 1;
 
 		const canvas = document.querySelector('#canvas');
 
