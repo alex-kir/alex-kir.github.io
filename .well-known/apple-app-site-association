@@ -2,6 +2,10 @@
     "applinks": {
         "apps": [],
         "details": [
+          {
+                    "appID": "QHKL47K9L9.com.booksrun.booksrun",
+                    "paths": [ "/open_mobile_store/*", "/open_mobile_app/*" ]
+            },
             {
                 "appID": "BF9TN7JGBD.com.booksrun.booksrun",
                 "paths": [
