@@ -1,4 +1,4 @@
-const cacheName = "DefaultCompany-Cury3dViewer-0.1.0";
+const cacheName = "DefaultCompany-Cuby3dViewerMobile-1.0.2";
 const contentToCache = [
     "Build/cuby.loader.js",
     "Build/cuby.framework.js",
