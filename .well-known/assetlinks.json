@@ -1,9 +1,0 @@
-[{
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-        "namespace": "android_app",
-        "package_name": "com.booksrun.booksrun",
-        "sha256_cert_fingerprints":
-            ["34:6C:D6:E4:7C:75:A4:45:BC:DA:A8:5B:3E:6F:A6:1E:B7:6A:41:8C:FB:EC:63:B4:D1:F4:CD:8C:8A:8B:75:62"]
-    }
-}]
