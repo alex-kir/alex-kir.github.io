@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>three.js webgl - interactive - voxel painter</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
+	<style>
+		body {
+			background-color: #f0f0f0;
+			color: #444;
+		}
+
+		a {
+			color: #08f;
+		}
+
+		html,
+		body {
+			height: 100%;
+			margin: 0;
+		}
+
+		#container {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="container">
+		<canvas id="canvas"></canvas>
+	</div>
+
+	<!-- <div id="info">
+		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - voxel painter - webgl<br>
+		<strong>click</strong>: add voxel, <strong>shift + click</strong>: remove voxel
+	</div> -->
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js",
+					"three": "./build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+	<script type="module">
+
+		import * as THREE from 'three';
+		import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+
+		class MousePointerTracker {
+			/**
+			 *
+			 */
+			#_sphere;
+			#_scene;
+
+			constructor(scene) {
+				// super();
+				const sphereGeometry = new THREE.SphereGeometry(4, 32, 32);
+				const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+				this.#_sphere = sphere;
+				this.#_scene = scene;
+				scene.add(sphere);
+			}
+
+			UpdatePoint(point) {
+				this.#_sphere.position.copy(point);
+			}
+		};
+
+		let camera, scene, renderer;
+		let plane;
+		let pointer, raycaster, isShiftDown = false;
+
+		let rollOverMesh, rollOverMaterial;
+		let cubeGeo, cubeMaterial;
+
+		let _mousePointerTracker;
+
+		const objects = [];
+
+		init();
+		render();
+
+		function deg(val) {
+			return Math.PI * val / 180;
+		}
+
+		function init() {
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+			camera.position.set(650, 800, 1300);
+			camera.lookAt(0, 0, 0);
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0xf0f0f0);
+
+			//
+
+			_mousePointerTracker = new MousePointerTracker(scene);
+
+			// roll-over helpers
+
+			const rollOverGeo = new THREE.BoxGeometry(50, 50, 50);
+			rollOverMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.5, transparent: true });
+			rollOverMesh = new THREE.Mesh(rollOverGeo, rollOverMaterial);
+			scene.add(rollOverMesh);
+
+			// fbx
+			const fbx_loader = new FBXLoader();
+			fbx_loader.load('models/door_1x2.fbx', function (obj) {
+				console.log(obj);
+				obj.scale.set(0.1, 0.1, 0.1);
+				obj.position.set(0, 0, -200);
+				obj.rotation.set(0, deg(180), 0);
+
+				const obj2 = obj.clone();
+				obj2.position.set(-100, 0, 0);
+				obj2.rotation.set(0, deg(90), 0);
+
+				scene.add(obj);
+				scene.add(obj2);
+			});
+
+			// cubes
+
+			const map = new THREE.TextureLoader().load('textures/square-outline-textured.png');
+			map.colorSpace = THREE.SRGBColorSpace;
+			cubeGeo = new THREE.BoxGeometry(50, 50, 50);
+			cubeMaterial = new THREE.MeshLambertMaterial({ color: 0xfeb74c, map: map });
+
+			// grid
+
+			const gridHelper = new THREE.GridHelper(1000, 20);
+			scene.add(gridHelper);
+
+			//
+
+			raycaster = new THREE.Raycaster();
+			pointer = new THREE.Vector2();
+
+			const geometry = new THREE.PlaneGeometry(1000, 1000);
+			geometry.rotateX(- Math.PI / 2);
+
+			plane = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ visible: false }));
+			scene.add(plane);
+
+			objects.push(plane);
+
+			// lights
+
+			const ambientLight = new THREE.AmbientLight(0x606060, 3);
+			scene.add(ambientLight);
+
+			const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+			directionalLight.position.set(1, 0.75, 0.5).normalize();
+			scene.add(directionalLight);
+
+
+			const container1 = document.querySelector('#container');
+			const canvas = document.querySelector('#canvas');
+			renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(container1.offsetWidth, container1.offsetHeight);
+			//renderer.setSize(window.innerWidth, window.innerHeight);
+			// document.body.appendChild(renderer.domElement);
+
+			document.addEventListener('pointermove', onPointerMove);
+			document.addEventListener('pointerdown', onPointerDown);
+			document.addEventListener('keydown', onDocumentKeyDown);
+			document.addEventListener('keyup', onDocumentKeyUp);
+
+			//
+
+			window.addEventListener('resize', onWindowResize);
+
+		}
+
+		function onWindowResize() {
+
+			const canvas = document.querySelector('#canvas');
+			const w = canvas.offsetWidth;
+			const h = canvas.offsetHeight;
+			camera.aspect = w / h;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(w, h);
+
+			render();
+
+		}
+
+		function onPointerMove(event) {
+
+			pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+
+			raycaster.setFromCamera(pointer, camera);
+
+			const intersects = raycaster.intersectObjects(objects, false);
+
+			if (intersects.length > 0) {
+
+				const intersect = intersects[0];
+
+				_mousePointerTracker.UpdatePoint(intersect.point);
+
+				rollOverMesh.position.copy(intersect.point).add(intersect.face.normal);
+				rollOverMesh.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+
+				render();
+
+			}
+
+		}
+
+		function onPointerDown(event) {
+
+			pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+
+			raycaster.setFromCamera(pointer, camera);
+
+			const intersects = raycaster.intersectObjects(objects, false);
+
+			if (intersects.length > 0) {
+
+				const intersect = intersects[0];
+
+				// delete cube
+
+				if (isShiftDown) {
+
+					if (intersect.object !== plane) {
+
+						scene.remove(intersect.object);
+
+						objects.splice(objects.indexOf(intersect.object), 1);
+
+					}
+
+					// create cube
+
+				} else {
+
+					const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
+					voxel.position.copy(intersect.point).add(intersect.face.normal);
+					voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+					scene.add(voxel);
+
+					objects.push(voxel);
+
+				}
+
+				render();
+
+			}
+
+		}
+
+		function onDocumentKeyDown(event) {
+
+			switch (event.keyCode) {
+
+				case 16: isShiftDown = true; break;
+
+			}
+
+		}
+
+		function onDocumentKeyUp(event) {
+
+			switch (event.keyCode) {
+
+				case 16: isShiftDown = false; break;
+
+			}
+
+		}
+
+		function render() {
+
+			renderer.render(scene, camera);
+
+		}
+
+	</script>
+
+</body>
+
+</html>
