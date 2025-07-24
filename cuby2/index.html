@@ -171,11 +171,10 @@
 			scene.add(directionalLight);
 
 
-			const container1 = document.querySelector('#container');
 			const canvas = document.querySelector('#canvas');
 			renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
 			renderer.setPixelRatio(window.devicePixelRatio);
-			renderer.setSize(container1.offsetWidth, container1.offsetHeight);
+			onWindowResize();
 			//renderer.setSize(window.innerWidth, window.innerHeight);
 			// document.body.appendChild(renderer.domElement);
 
@@ -192,7 +191,7 @@
 
 		function onWindowResize() {
 
-			const canvas = document.querySelector('#canvas');
+			const canvas = document.querySelector('#container');
 			const w = canvas.offsetWidth;
 			const h = canvas.offsetHeight;
 			camera.aspect = w / h;
