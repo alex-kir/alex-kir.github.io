@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-	<title>three.js webgl - interactive - voxel painter</title>
+	<title>CUBY Constructor - Demo</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
@@ -103,7 +103,7 @@
 		function init() {
 
 			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-			camera.position.set(350, 400, 700);
+			camera.position.set(550, 400, 800);
 			camera.lookAt(0, 0, 0);
 
 			scene = new THREE.Scene();
@@ -122,19 +122,49 @@
 
 			// fbx
 			const fbx_loader = new FBXLoader();
-			fbx_loader.load('models/door_1x2.fbx', function (obj) {
-				console.log(obj);
-				obj.scale.set(0.1, 0.1, 0.1);
-				obj.position.set(0, 0, -200);
-				obj.rotation.set(0, deg(180), 0);
+			fbx_loader.load('models/door_1x2.fbx', function (door1) {
+				//console.log(door1);
+				door1.scale.set(0.1, 0.1, 0.1);
+				door1.position.set(300, 0, -400);
+				door1.rotation.set(0, deg(180), 0);
 
-				const obj2 = obj.clone();
-				obj2.position.set(-100, 0, 0);
-				obj2.rotation.set(0, deg(90), 0);
+				const door2 = door1.clone();
+				door2.position.set(200, 0, 100);
+				door2.rotation.set(0, deg(90), 0);
 
-				scene.add(obj);
-				scene.add(obj2);
+				scene.add(door1);
+				scene.add(door2);
+
+				render();
 			});
+
+			fbx_loader.load('models/window_1x0_7.fbx', function (win1) {
+				console.log("win1:", win1);
+				win1.scale.set(0.1, 0.1, 0.1);
+				win1.position.set(-400, 0, 100);
+				win1.rotation.set(0, deg(90), 0);
+				scene.add(win1);
+				render();
+			});
+
+			fbx_loader.load('models/window_1x1_8.fbx', function (win1) {
+				console.log("win1:", win1);
+				win1.scale.set(0.1, 0.1, 0.1);
+				win1.position.set(-100, 0, 100);
+				win1.rotation.set(0, deg(90), 0);
+				scene.add(win1);
+				render();
+			});
+
+			fbx_loader.load('models/window_2x1_8.fbx', function (win1) {
+				console.log("win1:", win1);
+				win1.scale.set(0.1, 0.1, 0.1);
+				win1.position.set(300, 0, -200);
+				win1.rotation.set(0, deg(180), 0);
+				scene.add(win1);
+				render();
+			});
+
 
 			// cubes
 
