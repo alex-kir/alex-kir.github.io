@@ -20,11 +20,17 @@
 		body {
 			height: 100%;
 			margin: 0;
+			background-color: #dfe;
 		}
 
 		#container {
-			width: 100%;
-			height: 100%;
+			/* width: 100%; */
+			/* height: 100%; */
+			position: absolute;
+			left: 32px;
+			top: 32px;
+			right: 32px;
+			bottom: 32px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -47,8 +53,8 @@
 			{
 				"imports": {
 					"three": "./build/three.module.js",
-					"three": "./build/three.module.js",
-					"three/addons/": "./jsm/"
+					"three/addons/": "./jsm/",
+					"app/": "./app/"
 				}
 			}
 		</script>
@@ -58,275 +64,127 @@
 		import * as THREE from 'three';
 		import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
+		import { shared_resource_manager } from 'app/app_resource_manager.js';
+		import { shared_view_manager } from 'app/app_view_manager.js';
+		//import * as PLUGINS from 'app/app_view_plugins.js';
+		import { draw_plane_view_plugin_class } from 'app/draw_plane_view_plugin.js';
+		import { camera_control_view_plugin_class } from 'app/camera_control_view_plugin.js';
+		import { place_boxes_view_plugin_class } from 'app/place_boxes_view_plugin.js';
+		import { deg } from 'app/utils.js';
 
-		class MousePointerTracker {
-			/**
-			 *
-			 */
-			#_sphere;
-			#_scene;
+		
 
-			constructor(scene) {
-				// super();
-				const sphereGeometry = new THREE.SphereGeometry(4, 32, 32);
-				const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+		//let camera, scene, 
+		// let renderer;
+		// let plane;
+		// let pointer, raycaster, isShiftDown = false;
 
-				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-				this.#_sphere = sphere;
-				this.#_scene = scene;
-				scene.add(sphere);
-			}
+		// let rollOverMesh, rollOverMaterial;
+		// let cubeGeo, cubeMaterial;
 
-			UpdatePoint(point) {
-				this.#_sphere.position.copy(point);
-			}
-		};
+		// let _mousePointerTracker;
 
-		let camera, scene, renderer;
-		let plane;
-		let pointer, raycaster, isShiftDown = false;
+		// const objects = [];
 
-		let rollOverMesh, rollOverMaterial;
-		let cubeGeo, cubeMaterial;
+		const plug1 = new draw_plane_view_plugin_class();
+		const plug2 = new camera_control_view_plugin_class();
+		const plug3 = new place_boxes_view_plugin_class();
 
-		let _mousePointerTracker;
-
-		const objects = [];
 
 		init();
-		render();
-
-		function deg(val) {
-			return Math.PI * val / 180;
-		}
 
 		function init() {
 
-			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-			camera.position.set(550, 400, 800);
-			camera.lookAt(0, 0, 0);
+			shared_view_manager.addPlugin(plug1);
+			shared_view_manager.addPlugin(plug2);
+			shared_view_manager.addPlugin(plug3);
 
-			scene = new THREE.Scene();
-			scene.background = new THREE.Color(0xf0f0f0);
+			shared_view_manager.init(document.querySelector('#canvas'));
+
+
+			//_mousePointerTracker = new MousePointerTracker(shared_view_manager.scene);
+
+			
+			function placeObject(name, x, z, angle) {
+				const d1 = shared_resource_manager.get_object(name);
+				d1.position.set(x, 0, z);
+				d1.rotation.set(0, deg(angle), 0);
+				shared_view_manager.scene.add(d1);
+			}
+
+			// load - walls, door, windows
+
+			// placeObject('wall', 200, 200, 0);
+
+			// placeObject('wall', -600, 100, 180);
+			// placeObject('wall', -600, 200, 180);
+
+			// placeObject('window_1x0_7', -400, 100, 90);
+			// placeObject('window_1x1_8', -100, 100, 90);
+			// placeObject('door_1x2', 200, 100, 90);
+
+			// placeObject('window_2x1_8', 300, -200, 180);
+			// placeObject('door_1x2', 300, -500, 180);
+
+			placeObject('a/home_3x3_lo', -800, 400, 0);
+			placeObject('a/home_3x3_hi', -800, 0, 0);
+			placeObject('a/garage_6x3', -400, 0, 0);
+			placeObject('a/home_6x3', 0, 0, 0);
+			placeObject('a/veranda_3x3_lo', 400, 0, 0);
+			placeObject('a/veranda_3x3_hi', 400, -400, 0);
+
+
+
+			// // grid
+
+			// const gridHelper = new THREE.GridHelper(1000, 20);
+			// shared_view_manager.scene.add(gridHelper);
 
 			//
 
-			_mousePointerTracker = new MousePointerTracker(scene);
+			// raycaster = new THREE.Raycaster();
+			// pointer = new THREE.Vector2();
 
-			// roll-over helpers
+			// const geometry = new THREE.PlaneGeometry(1000, 1000);
+			// geometry.rotateX(- Math.PI / 2);
 
-			const rollOverGeo = new THREE.BoxGeometry(50, 10, 50);
-			rollOverMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.5, transparent: true });
-			rollOverMesh = new THREE.Mesh(rollOverGeo, rollOverMaterial);
-			scene.add(rollOverMesh);
+			// plane = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ visible: false }));
+			// shared_view_manager.scene.add(plane);
 
-			// fbx
-			const fbx_loader = new FBXLoader();
-			fbx_loader.load('models/door_1x2.fbx', function (door1) {
-				//console.log(door1);
-				door1.scale.set(0.1, 0.1, 0.1);
-				door1.position.set(300, 0, -400);
-				door1.rotation.set(0, deg(180), 0);
+			// objects.push(plane);
 
-				const door2 = door1.clone();
-				door2.position.set(200, 0, 100);
-				door2.rotation.set(0, deg(90), 0);
-
-				scene.add(door1);
-				scene.add(door2);
-
-				render();
-			});
-
-			fbx_loader.load('models/window_1x0_7.fbx', function (win1) {
-				console.log("win1:", win1);
-				win1.scale.set(0.1, 0.1, 0.1);
-				win1.position.set(-400, 0, 100);
-				win1.rotation.set(0, deg(90), 0);
-				scene.add(win1);
-				render();
-			});
-
-			fbx_loader.load('models/window_1x1_8.fbx', function (win1) {
-				console.log("win1:", win1);
-				win1.scale.set(0.1, 0.1, 0.1);
-				win1.position.set(-100, 0, 100);
-				win1.rotation.set(0, deg(90), 0);
-				scene.add(win1);
-				render();
-			});
-
-			fbx_loader.load('models/window_2x1_8.fbx', function (win1) {
-				console.log("win1:", win1);
-				win1.scale.set(0.1, 0.1, 0.1);
-				win1.position.set(300, 0, -200);
-				win1.rotation.set(0, deg(180), 0);
-				scene.add(win1);
-				render();
-			});
+		
 
 
-			// cubes
+			// document.addEventListener('pointermove', onPointerMove);
+			// document.addEventListener('pointerdown', onPointerDown);
+			// document.addEventListener('keydown', onDocumentKeyDown);
+			// document.addEventListener('keyup', onDocumentKeyUp);
 
-			const map = new THREE.TextureLoader().load('textures/square-outline-textured.png');
-			map.colorSpace = THREE.SRGBColorSpace;
-			cubeGeo = new THREE.BoxGeometry(50, 10, 50);
-			cubeMaterial = new THREE.MeshLambertMaterial({ color: 0xfeb74c, map: map });
-
-			// grid
-
-			const gridHelper = new THREE.GridHelper(1000, 20);
-			scene.add(gridHelper);
-
-			//
-
-			raycaster = new THREE.Raycaster();
-			pointer = new THREE.Vector2();
-
-			const geometry = new THREE.PlaneGeometry(1000, 1000);
-			geometry.rotateX(- Math.PI / 2);
-
-			plane = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ visible: false }));
-			scene.add(plane);
-
-			objects.push(plane);
-
-			// lights
-
-			const ambientLight = new THREE.AmbientLight(0x606060, 3);
-			scene.add(ambientLight);
-
-			const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-			directionalLight.position.set(1, 0.75, 0.5).normalize();
-			scene.add(directionalLight);
-
-
-			const canvas = document.querySelector('#canvas');
-			renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
-			renderer.setPixelRatio(window.devicePixelRatio);
-			onWindowResize();
-			//renderer.setSize(window.innerWidth, window.innerHeight);
-			// document.body.appendChild(renderer.domElement);
-
-			document.addEventListener('pointermove', onPointerMove);
-			document.addEventListener('pointerdown', onPointerDown);
-			document.addEventListener('keydown', onDocumentKeyDown);
-			document.addEventListener('keyup', onDocumentKeyUp);
-
-			//
-
-			window.addEventListener('resize', onWindowResize);
 
 		}
 
-		function onWindowResize() {
+		// function onWindowResize() {
 
-			const canvas = document.querySelector('#container');
-			const w = canvas.offsetWidth;
-			const h = canvas.offsetHeight;
-			camera.aspect = w / h;
-			camera.updateProjectionMatrix();
+		// 	const canvas = document.querySelector('#container');
+		// 	const w = canvas.offsetWidth;
+		// 	const h = canvas.offsetHeight;
+		// 	shared_view_manager.camera.aspect = w / h;
+		// 	shared_view_manager.camera.updateProjectionMatrix();
 
-			renderer.setSize(w, h);
+		// 	renderer.setSize(w, h);
 
-			render();
+		// 	render();
 
-		}
+		// }
 
-		function onPointerMove(event) {
+		
 
-			pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+		// function render() {
 
-			raycaster.setFromCamera(pointer, camera);
+		// 	renderer.render(shared_view_manager.scene, shared_view_manager.camera);
 
-			const intersects = raycaster.intersectObjects(objects, false);
-
-			if (intersects.length > 0) {
-
-				const intersect = intersects[0];
-
-				_mousePointerTracker.UpdatePoint(intersect.point);
-
-				rollOverMesh.position.copy(intersect.point).add(intersect.face.normal);
-				const half = new THREE.Vector3(25, 5, 25);
-				const one = new THREE.Vector3(50, 10, 50);
-				rollOverMesh.position.divide(one).floor().multiply(one).add(half);
-
-				render();
-
-			}
-
-		}
-
-		function onPointerDown(event) {
-
-			pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
-
-			raycaster.setFromCamera(pointer, camera);
-
-			const intersects = raycaster.intersectObjects(objects, false);
-
-			if (intersects.length > 0) {
-
-				const intersect = intersects[0];
-
-				// delete cube
-
-				if (isShiftDown) {
-
-					if (intersect.object !== plane) {
-
-						scene.remove(intersect.object);
-
-						objects.splice(objects.indexOf(intersect.object), 1);
-					}
-
-					// create cube
-
-				} else {
-
-					const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
-					voxel.position.copy(intersect.point).add(intersect.face.normal);
-					const half = new THREE.Vector3(25, 5, 25);
-					const one = new THREE.Vector3(50, 10, 50);
-					voxel.position.divide(one).floor().multiply(one).add(half);
-					scene.add(voxel);
-
-					objects.push(voxel);
-
-				}
-
-				render();
-
-			}
-
-		}
-
-		function onDocumentKeyDown(event) {
-
-			switch (event.keyCode) {
-
-				case 16: isShiftDown = true; break;
-
-			}
-
-		}
-
-		function onDocumentKeyUp(event) {
-
-			switch (event.keyCode) {
-
-				case 16: isShiftDown = false; break;
-
-			}
-
-		}
-
-		function render() {
-
-			renderer.render(scene, camera);
-
-		}
+		// }
 
 	</script>
 
