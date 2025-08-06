@@ -27,9 +27,9 @@
 			/* width: 100%; */
 			/* height: 100%; */
 			position: absolute;
-			left: 32px;
+			left: 48px;
 			top: 32px;
-			right: 32px;
+			right: 48px;
 			bottom: 32px;
 			display: flex;
 			align-items: center;
@@ -40,14 +40,7 @@
 
 <body>
 
-	<div id="container">
-		<canvas id="canvas"></canvas>
-	</div>
-
-	<!-- <div id="info">
-		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - voxel painter - webgl<br>
-		<strong>click</strong>: add voxel, <strong>shift + click</strong>: remove voxel
-	</div> -->
+	<div id="container"></div>
 
 	<script type="importmap">
 			{
@@ -61,133 +54,41 @@
 
 	<script type="module">
 
-		import * as THREE from 'three';
-		import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-
 		import { shared_resource_manager } from 'app/app_resource_manager.js';
 		import { shared_view_manager } from 'app/app_view_manager.js';
-		//import * as PLUGINS from 'app/app_view_plugins.js';
+		import * as PLUGINS from 'app/app_view_plugins.js';
 		import { draw_plane_view_plugin_class } from 'app/draw_plane_view_plugin.js';
 		import { camera_control_view_plugin_class } from 'app/camera_control_view_plugin.js';
 		import { place_boxes_view_plugin_class } from 'app/place_boxes_view_plugin.js';
 		import { deg } from 'app/utils.js';
-
-		
-
-		//let camera, scene, 
-		// let renderer;
-		// let plane;
-		// let pointer, raycaster, isShiftDown = false;
-
-		// let rollOverMesh, rollOverMaterial;
-		// let cubeGeo, cubeMaterial;
-
-		// let _mousePointerTracker;
-
-		// const objects = [];
-
-		const plug1 = new draw_plane_view_plugin_class();
-		const plug2 = new camera_control_view_plugin_class();
-		const plug3 = new place_boxes_view_plugin_class();
 
 
 		init();
 
 		function init() {
 
-			shared_view_manager.addPlugin(plug1);
-			shared_view_manager.addPlugin(plug2);
-			shared_view_manager.addPlugin(plug3);
+			shared_view_manager.addPlugin(new draw_plane_view_plugin_class());
+			shared_view_manager.addPlugin(new camera_control_view_plugin_class());
+			shared_view_manager.addPlugin(new place_boxes_view_plugin_class());
+			shared_view_manager.addPlugin(new PLUGINS.fps_view_plugin_class());
 
-			shared_view_manager.init(document.querySelector('#canvas'));
+			const container = document.querySelector('#container');
+			shared_view_manager.init(container);
 
-
-			//_mousePointerTracker = new MousePointerTracker(shared_view_manager.scene);
-
-			
-			function placeObject(name, x, z, angle) {
-				const d1 = shared_resource_manager.get_object(name);
-				d1.position.set(x, 0, z);
-				d1.rotation.set(0, deg(angle), 0);
-				shared_view_manager.scene.add(d1);
-			}
-
-			// load - walls, door, windows
-
-			// placeObject('wall', 200, 200, 0);
-
-			// placeObject('wall', -600, 100, 180);
-			// placeObject('wall', -600, 200, 180);
-
-			// placeObject('window_1x0_7', -400, 100, 90);
-			// placeObject('window_1x1_8', -100, 100, 90);
-			// placeObject('door_1x2', 200, 100, 90);
-
-			// placeObject('window_2x1_8', 300, -200, 180);
-			// placeObject('door_1x2', 300, -500, 180);
-
-			placeObject('a/home_3x3_lo', -800, 400, 0);
-			placeObject('a/home_3x3_hi', -800, 0, 0);
-			placeObject('a/garage_6x3', -400, 0, 0);
-			placeObject('a/home_6x3', 0, 0, 0);
-			placeObject('a/veranda_3x3_lo', 400, 0, 0);
-			placeObject('a/veranda_3x3_hi', 400, -400, 0);
-
-
-
-			// // grid
-
-			// const gridHelper = new THREE.GridHelper(1000, 20);
-			// shared_view_manager.scene.add(gridHelper);
-
-			//
-
-			// raycaster = new THREE.Raycaster();
-			// pointer = new THREE.Vector2();
-
-			// const geometry = new THREE.PlaneGeometry(1000, 1000);
-			// geometry.rotateX(- Math.PI / 2);
-
-			// plane = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ visible: false }));
-			// shared_view_manager.scene.add(plane);
-
-			// objects.push(plane);
-
-		
-
-
-			// document.addEventListener('pointermove', onPointerMove);
-			// document.addEventListener('pointerdown', onPointerDown);
-			// document.addEventListener('keydown', onDocumentKeyDown);
-			// document.addEventListener('keyup', onDocumentKeyUp);
-
-
+			// function placeObject(name, x, z, angle) {
+			// 	const d1 = shared_resource_manager.get_object(name);
+			// 	d1.position.set(x, 0, z);
+			// 	d1.rotation.set(0, deg(angle), 0);
+			// 	shared_view_manager.scene.add(d1);
+			// }
+			// placeObject('a/home_3x3_lo', -800, 400, 0);
+			// placeObject('a/home_3x3_hi', -800, 0, 0);
+			// placeObject('a/garage_6x3', -400, 0, 0);
+			// placeObject('a/home_6x3', 0, 0, 0);
+			// placeObject('a/veranda_3x3_lo', 400, 0, 0);
+			// placeObject('a/veranda_3x3_hi', 400, -400, 0);
 		}
-
-		// function onWindowResize() {
-
-		// 	const canvas = document.querySelector('#container');
-		// 	const w = canvas.offsetWidth;
-		// 	const h = canvas.offsetHeight;
-		// 	shared_view_manager.camera.aspect = w / h;
-		// 	shared_view_manager.camera.updateProjectionMatrix();
-
-		// 	renderer.setSize(w, h);
-
-		// 	render();
-
-		// }
-
-		
-
-		// function render() {
-
-		// 	renderer.render(shared_view_manager.scene, shared_view_manager.camera);
-
-		// }
-
 	</script>
-
 </body>
 
 </html>

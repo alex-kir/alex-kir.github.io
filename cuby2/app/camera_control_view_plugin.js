@@ -1,7 +1,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { app_view_plugin_class } from 'app/app_view_manager.js';
+import { app_view_plugin_class } from 'app/app_view_plugin.js';
 import { deg } from 'app/utils.js';
 
 export class camera_control_view_plugin_class extends app_view_plugin_class {

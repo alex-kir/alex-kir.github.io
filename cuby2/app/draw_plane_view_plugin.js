@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { app_view_plugin_class } from 'app/app_view_manager.js';
-
+import { app_view_plugin_class } from 'app/app_view_plugin.js';
 
 export class draw_plane_view_plugin_class extends app_view_plugin_class {
 

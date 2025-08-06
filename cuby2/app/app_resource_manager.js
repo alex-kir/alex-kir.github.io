@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { shared_view_manager } from 'app/app_view_manager.js';
+import { deg } from 'app/utils.js';
 
 class app_resource_manager_class {
     #_fbxLoader;
@@ -33,6 +34,11 @@ class app_resource_manager_class {
                 this.#_fbxLoader.load('models/' + name + '.fbx', function (obj) {
 
                     obj.scale.set(0.1, 0.1, 0.1);
+
+                    if (name.startsWith('a/'))
+                    {
+                        obj.rotation.set(0, deg(-90), 0);
+                    }
 
                     // if (name == 'wall') {
                     //     obj.position.set(20, 3, 1668); // HACK
