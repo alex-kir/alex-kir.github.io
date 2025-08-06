@@ -89,12 +89,12 @@ export class place_boxes_view_plugin_class extends app_view_plugin_class {
 
         this._mousePointerTracker = new MousePointerTracker(viewManager.scene);
 
-        this.#models.push([shared_resource_manager.get_object('a/home_6x3')]);
-        this.#models.push([shared_resource_manager.get_object('a/home_3x3_lo')]);
-        this.#models.push([shared_resource_manager.get_object('a/home_3x3_hi')]);
-        this.#models.push([shared_resource_manager.get_object('a/garage_6x3')]);
-        this.#models.push([shared_resource_manager.get_object('a/veranda_3x3_lo')]);
-        this.#models.push([shared_resource_manager.get_object('a/veranda_3x3_hi')]);
+        this.#models.push([shared_resource_manager.get_object('a/home_6x3'), shared_resource_manager.get_object('b/home_6x3')]);
+        this.#models.push([shared_resource_manager.get_object('a/home_3x3_lo'), shared_resource_manager.get_object('b/home_3x3_lo')]);
+        this.#models.push([shared_resource_manager.get_object('a/home_3x3_hi'), shared_resource_manager.get_object('b/home_3x3_hi')]);
+        this.#models.push([shared_resource_manager.get_object('a/garage_6x3'), shared_resource_manager.get_object('b/garage_6x3')]);
+        this.#models.push([shared_resource_manager.get_object('a/veranda_3x3_lo'), shared_resource_manager.get_object('b/veranda_3x3_lo')]);
+        this.#models.push([shared_resource_manager.get_object('a/veranda_3x3_hi'), shared_resource_manager.get_object('b/veranda_3x3_hi')]);
         this.#setActiveModel(0);
     }
 
@@ -244,7 +244,14 @@ export class place_boxes_view_plugin_class extends app_view_plugin_class {
     }
 
     #setActiveModel(index) {
-        const model = this.#models[index][0];
+        let model = this.#models[index][0];
+        console.log("index:", index);
+        console.log(model);
+        console.log(this.#activeModel);
+        if (this.#activeModel == model)
+        {
+            model = this.#models[index][1];
+        }
         this.#activeModel = model;
         this.#resetCandidate();
     }

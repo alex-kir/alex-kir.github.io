@@ -40,6 +40,13 @@ class app_resource_manager_class {
                         obj.rotation.set(0, deg(-90), 0);
                     }
 
+                    if (name.startsWith('b/'))
+                    {
+                        obj.rotation.set(0, deg(90), 0);
+                        obj.position.set(300, 0 , 300);
+                    }
+
+
                     // if (name == 'wall') {
                     //     obj.position.set(20, 3, 1668); // HACK
                     // }
