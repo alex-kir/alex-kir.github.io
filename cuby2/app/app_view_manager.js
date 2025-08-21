@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import RootViewModel from './models/RootViewModel.js'
 
 class app_view_manager_class {
 
+    #rootViewModel = new RootViewModel();
+    get rootViewModel() { return this.#rootViewModel; }
 
     get canvas() { return this.renderer.domElement; }
     get container() { return this.renderer.domElement.parentNode; }
@@ -9,6 +12,9 @@ class app_view_manager_class {
     camera;
     scene;
     renderer;
+
+    #raycaster = new THREE.Raycaster();
+    #raycasterPointer = new THREE.Vector2();
 
     #_plugins = [];
 
@@ -43,11 +49,53 @@ class app_view_manager_class {
 
         for (const p of this.#_plugins) { p.onSceneCreated(this); }
 
-        window.addEventListener('resize', this.onWindowResize.bind(this)); // TODO refactor: stop using 'window'
-        this.onWindowResize();
+        // subscribe to mouse and keyboard
+
+        container.addEventListener('pointermove', this.#onPointerMove.bind(this));
+        container.addEventListener('pointerdown', this.#onPointerDown.bind(this));
+
+        document.addEventListener('keydown', this.#onDocumentKeyDown.bind(this));
+        document.addEventListener('keyup', this.#onDocumentKeyUp.bind(this));
+
+        // observe resize
+
+        new ResizeObserver(this.#onContainerResize.bind(this)).observe(container);
+        this.#onContainerResize();
     }
 
-    onWindowResize() {
+    #onPointerMove(event)
+    {
+        this.#updateRaycaster(event);
+        for (const p of this.#_plugins) { p.onPointerMove(event, this.#raycaster); }
+    }
+
+    #onPointerDown(event)
+    {
+        this.#updateRaycaster(event);
+        for (const p of this.#_plugins) { p.onPointerDown(event, this.#raycaster); }
+    }
+
+    #onDocumentKeyDown(event)
+    {
+        for (const p of this.#_plugins) { p.onDocumentKeyDown(event); }
+    }
+
+    #onDocumentKeyUp(event)
+    {
+        for (const p of this.#_plugins) { p.onDocumentKeyUp(event); }
+    }
+
+    #updateRaycaster(event) {
+        const x = event.layerX;
+        const y = event.layerY;
+        const width = event.target.offsetWidth;
+        const height = event.target.offsetHeight;
+        this.#raycasterPointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
+        this.#raycaster.setFromCamera(this.#raycasterPointer, shared_view_manager.camera);
+        return true;
+    }
+
+    #onContainerResize() {
 
         const container = this.container;
         const w = container.offsetWidth;

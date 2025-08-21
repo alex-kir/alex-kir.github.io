@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import { shared_view_manager } from 'app/app_view_manager.js';
-import { deg } from 'app/utils.js';
+import { shared_view_manager } from './app_view_manager.js';
+import { deg } from './utils.js';
 
 class app_resource_manager_class {
     #_fbxLoader;
@@ -37,21 +37,12 @@ class app_resource_manager_class {
 
                     if (name.startsWith('a/'))
                     {
-                        obj.rotation.set(0, deg(-90), 0);
+                        //obj.rotation.set(0, deg(-90), 0);
+                        obj.rotation.set(0, deg(0), 0);
+                        obj.position.set(-150, 0 , 150);
                     }
 
-                    if (name.startsWith('b/'))
-                    {
-                        obj.rotation.set(0, deg(90), 0);
-                        obj.position.set(300, 0 , 300);
-                    }
-
-
-                    // if (name == 'wall') {
-                    //     obj.position.set(20, 3, 1668); // HACK
-                    // }
-
-                    cache[name] = obj;
+                    cache.set(name, obj);
                     list.forEach(element => {
                         element.add(obj.clone());
                     });

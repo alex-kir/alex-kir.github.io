@@ -3,12 +3,13 @@
 
 <head>
 	<title>CUBY Constructor - Demo</title>
+	<link rel="icon" href="favicon.svg" sizes="any" type="image/svg+xml">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
 	<style>
 		body {
-			background-color: #f0f0f0;
+			/* background-color: #f0f0f0; */
 			color: #444;
 		}
 
@@ -20,17 +21,28 @@
 		body {
 			height: 100%;
 			margin: 0;
-			background-color: #dfe;
+			/* background-color: #dfe; */
+
+			overflow: hidden;
 		}
 
 		#container {
 			/* width: 100%; */
 			/* height: 100%; */
 			position: absolute;
-			left: 48px;
-			top: 32px;
-			right: 48px;
-			bottom: 32px;
+			overflow: hidden;
+			/* left: 48px; */
+			/* top: 32px; */
+			/* right: 48px; */
+			/* bottom: 32px; */
+			/* left: 1px;
+			top: 1px;
+			right: 1px;
+			bottom: 1px; */
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -39,55 +51,21 @@
 </head>
 
 <body>
-
 	<div id="container"></div>
-
 	<script type="importmap">
-			{
-				"imports": {
-					"three": "./build/three.module.js",
-					"three/addons/": "./jsm/",
-					"app/": "./app/"
-				}
+		{
+			"imports": {
+				"three": "./build/three.module.js",
+				"three/addons/": "./jsm/",
+				"app/": "./app/",
+				"widgets/": "./widgets-lib/Widgets.Web/"
 			}
-		</script>
-
-	<script type="module">
-
-		import { shared_resource_manager } from 'app/app_resource_manager.js';
-		import { shared_view_manager } from 'app/app_view_manager.js';
-		import * as PLUGINS from 'app/app_view_plugins.js';
-		import { draw_plane_view_plugin_class } from 'app/draw_plane_view_plugin.js';
-		import { camera_control_view_plugin_class } from 'app/camera_control_view_plugin.js';
-		import { place_boxes_view_plugin_class } from 'app/place_boxes_view_plugin.js';
-		import { deg } from 'app/utils.js';
-
-
-		init();
-
-		function init() {
-
-			shared_view_manager.addPlugin(new draw_plane_view_plugin_class());
-			shared_view_manager.addPlugin(new camera_control_view_plugin_class());
-			shared_view_manager.addPlugin(new place_boxes_view_plugin_class());
-			shared_view_manager.addPlugin(new PLUGINS.fps_view_plugin_class());
-
-			const container = document.querySelector('#container');
-			shared_view_manager.init(container);
-
-			// function placeObject(name, x, z, angle) {
-			// 	const d1 = shared_resource_manager.get_object(name);
-			// 	d1.position.set(x, 0, z);
-			// 	d1.rotation.set(0, deg(angle), 0);
-			// 	shared_view_manager.scene.add(d1);
-			// }
-			// placeObject('a/home_3x3_lo', -800, 400, 0);
-			// placeObject('a/home_3x3_hi', -800, 0, 0);
-			// placeObject('a/garage_6x3', -400, 0, 0);
-			// placeObject('a/home_6x3', 0, 0, 0);
-			// placeObject('a/veranda_3x3_lo', 400, 0, 0);
-			// placeObject('a/veranda_3x3_hi', 400, -400, 0);
 		}
+	</script>
+	<script type="module">
+		import { app_main } from 'app/app_main.js';
+		app_main(document.querySelector('#container'));
+		// app_main(document.body);
 	</script>
 </body>
 

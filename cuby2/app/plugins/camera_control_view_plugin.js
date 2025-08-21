@@ -1,10 +1,10 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { app_view_plugin_class } from 'app/app_view_plugin.js';
-import { deg } from 'app/utils.js';
+import ScenePluginBase from './ScenePluginBase.js';
+import { deg } from '../utils.js';
 
-export class camera_control_view_plugin_class extends app_view_plugin_class {
+export default class camera_control_view_plugin_class extends ScenePluginBase {
     #_controls;
     constructor() {
         super();
@@ -19,7 +19,10 @@ export class camera_control_view_plugin_class extends app_view_plugin_class {
         controls.minDistance = 500;
         controls.maxDistance = 5000;
 
+        controls.minPolarAngle = deg(0);
         controls.maxPolarAngle = deg(90);
+
+        controls.target.set(0, 175, 0);
 
         // controls.listenToKeyEvents( window ); // optional
 
