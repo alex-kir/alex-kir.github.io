@@ -1,9 +1,13 @@
 
+import { shared_view_manager } from '../app_view_manager.js';
+
 export default class ScenePluginBase {
 
     #viewManager;
 
+    get scene() { return this.#viewManager.scene; }
     get houseViewModel() { return this.#viewManager.rootViewModel.houseViewModel; }
+    get houseModel() { return this.#viewManager.rootViewModel.houseViewModel.houseModel; }
 
     onSceneCreated(viewManager) {
         this.#viewManager = viewManager;
@@ -22,5 +26,9 @@ export default class ScenePluginBase {
     }
 
     onDocumentKeyUp(event) {
+    }
+
+    static registerPlugin(pluginClass) {
+        shared_view_manager.addPlugin(new pluginClass());
     }
 }

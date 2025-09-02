@@ -2,7 +2,7 @@ import ScenePluginBase from './ScenePluginBase.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
 
-export default class fps_view_plugin_class extends ScenePluginBase {
+export default class FpsScenePlugin extends ScenePluginBase {
     #stats;
     constructor() {
         super();
@@ -19,3 +19,5 @@ export default class fps_view_plugin_class extends ScenePluginBase {
         this.#stats.update();
     }
 }
+
+ScenePluginBase.registerPlugin(FpsScenePlugin);

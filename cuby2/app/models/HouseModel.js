@@ -1,7 +1,7 @@
 import { Signal } from '../utils.js'
+import { BlockModel } from './BlockModel.js';
 
 export default class HouseModel {
-    /** @type {BlockModel[]} */
     #blocks = [];
 
     constructor() {
@@ -11,11 +11,14 @@ export default class HouseModel {
     blocksChanged = new Signal();
 
     canAdd(block) {
-        for (const b of this.#blocks) {
-            if (b.isIntersected(block))
-                return false;
+        if (block instanceof BlockModel) {
+            for (const b of this.#blocks) {
+                if (b.isIntersected(block))
+                    return false;
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     add(block) {

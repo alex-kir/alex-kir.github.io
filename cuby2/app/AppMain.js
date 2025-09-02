@@ -1,26 +1,21 @@
 
 import { shared_view_manager } from './app_view_manager.js';
 
-import p1 from './plugins/DrawPlaneViewPlugin.js';
-import p2 from './plugins/camera_control_view_plugin.js';
-import p3 from './plugins/HouseModelEditorViewPlugin.js';
-import p4 from './plugins/fps_view_plugin_class.js';
-import p5 from './plugins/SyncHouseModelPlugin.js';
-import './plugins/HotkeyScenePlugin.js'
+import './plugins/DrawPlaneScenePlugin.js';
+import './plugins/CameraControlScenePlugin.js';
+import './plugins/HouseModelEditorScenePlugin.js';
+import './plugins/FpsScenePlugin.js';
+import './plugins/HotkeysScenePlugin.js'
+import './plugins/SyncHouseBlocksScenePlugin.js';
+import './plugins/SyncHouseColumnsScenePlugin.js'
 
 import { HomePage } from './pages/HomePage.js';
 import { SinglePageWindow } from 'widgets/widgets-core.js';
 
-export function app_main(container) {
+export function AppMain(container) {
 
     const page = new HomePage(shared_view_manager.rootViewModel);
     new SinglePageWindow(container).Show(page);
-
-    shared_view_manager.addPlugin(new p1());
-    shared_view_manager.addPlugin(new p2());
-    shared_view_manager.addPlugin(new p3());
-    shared_view_manager.addPlugin(new p4());
-    shared_view_manager.addPlugin(new p5());
 
     shared_view_manager.init(page.view3dHost.PlatformView);
 

@@ -1,9 +1,8 @@
 import ScenePluginBase from './ScenePluginBase.js';
-import { shared_view_manager } from '../app_view_manager.js';
 import { BlockDirection } from '../models/BlockModel.js';
 import { CMS } from '../models/CMS.js';
 
-class HotkeyScenePlugin extends ScenePluginBase {
+class HotkeysScenePlugin extends ScenePluginBase {
 
     onDocumentKeyDown(event) {
         // console.log(event);
@@ -34,4 +33,4 @@ class HotkeyScenePlugin extends ScenePluginBase {
     }
 }
 
-shared_view_manager.addPlugin(new HotkeyScenePlugin());
+ScenePluginBase.registerPlugin(HotkeysScenePlugin);

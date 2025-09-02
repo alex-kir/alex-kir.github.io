@@ -24,10 +24,12 @@ export class HomePage extends RootWidget {
         header.Constraints.With('height', 60);
         header.Widgets = buttons;
 
-        const footer1 = this.#createButton('🡅', this.#commandForDirection(BlockDirection.North));
-        const footer2 = this.#createButton('🡆', this.#commandForDirection(BlockDirection.East));
-        const footer3 = this.#createButton('🡇', this.#commandForDirection(BlockDirection.South));
-        const footer4 = this.#createButton('🡄', this.#commandForDirection(BlockDirection.West));
+        // ← → ↔ ↑ ↓ , ↕
+        //'🡅' '🡆' '🡇' '🡄'
+        const footer1 = this.#createButton('↑', this.#commandForDirection(BlockDirection.North));
+        const footer2 = this.#createButton('→', this.#commandForDirection(BlockDirection.East));
+        const footer3 = this.#createButton('↓', this.#commandForDirection(BlockDirection.South));
+        const footer4 = this.#createButton('←', this.#commandForDirection(BlockDirection.West));
 
         const footer = new HorizontalGridWidget();
         footer.Spacing = 10;

@@ -14,6 +14,8 @@ export default class HouseViewModel {
     get houseModel() { return this.#houseModel; }
     get blocksChanged() { return this.#houseModel.blocksChanged; }
 
+    blockToSceneObjMapping = new Map();
+
     constructor() {
     }
 

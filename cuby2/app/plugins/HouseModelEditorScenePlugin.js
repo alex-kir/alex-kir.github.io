@@ -5,7 +5,7 @@ import { CubeCursor } from './CubeCursor.js';
 import { cellCount, cellSize } from '../utils.js';
 import { CMS } from '../models/CMS.js'
 
-export default class HouseModelEditorViewPlugin extends ScenePluginBase {
+class HouseModelEditorViewPlugin extends ScenePluginBase {
 
     #viewManager;
     #houseViewModel;
@@ -88,3 +88,5 @@ export default class HouseModelEditorViewPlugin extends ScenePluginBase {
         this.#cursor.setModel(null);
     }
 }
+
+ScenePluginBase.registerPlugin(HouseModelEditorViewPlugin);

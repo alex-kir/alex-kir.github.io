@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import ScenePluginBase from './ScenePluginBase.js';
 import { deg } from '../utils.js';
 
-export default class camera_control_view_plugin_class extends ScenePluginBase {
+class CameraControlScenePlugin extends ScenePluginBase {
     #_controls;
     constructor() {
         super();
@@ -42,3 +42,5 @@ export default class camera_control_view_plugin_class extends ScenePluginBase {
         // viewManager.scene.add(this.#_gridHelper);
     }
 }
+
+ScenePluginBase.registerPlugin(CameraControlScenePlugin);

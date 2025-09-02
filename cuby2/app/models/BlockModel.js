@@ -1,3 +1,4 @@
+import { ObservableUnit } from "../utils.js";
 
 export const BlockDirection =
 {
@@ -70,16 +71,38 @@ export class BlockModel {
     get height() { return this.#height; }
     get direction() { return this.#direction; }
 
-    /** @param {BlockModel} other */
+    get realX() { return this.#realX; }
+    get realY() { return this.#realY; }
+    get realWidth() { return this.#realWidth; }
+    get realHeight() { return this.#realHeight; }
+
+    #worldPosition = new ObservableUnit([0, 0]);
+    get worldPosition() { return this.#worldPosition; }
+
     isIntersected(other) {
-        if (this.#realX + this.#realWidth - 1 < other.#realX)
-            return false;
-        if (other.#realX + other.#realWidth - 1 < this.#realX)
-            return false;
-        if (this.#realY + this.#realHeight - 1 < other.#realY)
-            return false;
-        if (other.#realY + other.#realHeight - 1 < this.#realY)
-            return false;
-        return true;
+        if (other instanceof BlockModel) {
+            if (this.#realX + this.#realWidth - 1 < other.#realX)
+                return false;
+            if (other.#realX + other.#realWidth - 1 < this.#realX)
+                return false;
+            if (this.#realY + this.#realHeight - 1 < other.#realY)
+                return false;
+            if (other.#realY + other.#realHeight - 1 < this.#realY)
+                return false;
+            return true;
+        }
+        return false;
     }
+
+    // contains(x, y) {
+    //     if (x < this.#realX)
+    //         return false;
+    //     if (y < this.#realY)
+    //         return false;
+    //     if (this.#realX + this.#realWidth - 1 < x)
+    //         return false;
+    //     if (this.#realY + this.#realHeight - 1 < y)
+    //         return false;
+    //     return true;
+    // }
 }
