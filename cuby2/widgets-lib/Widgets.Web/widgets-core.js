@@ -438,15 +438,18 @@ export class ViewFactory {
                     case 'start':
                     case 'left':
                         div.style['justify-content'] = 'left';
+                        div.style['text-align'] = 'left';
                         break;
                     case 0:
                     case 'center':
                         div.style['justify-content'] = 'center';
+                        div.style['text-align'] = 'center';
                         break;
                     case 1:
                     case 'end':
                     case 'right':
                         div.style['justify-content'] = 'right';
+                        div.style['text-align'] = 'right';
                         break;
                 }
                 switch (ay) {
