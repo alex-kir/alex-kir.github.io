@@ -3,6 +3,7 @@ import { ButtonWidget, HorizontalGridWidget, VerticalGridWidget } from 'widgets/
 import { BlockDirection } from '../models/BlockModel.js';
 import { OverflowWidget } from '../../widgets-lib/Widgets.Web/widgets-ext.js';
 import { CMS } from '../models/CMS.js';
+import { SaveHouseToJson } from '../models/SaveHouseToJson.js';
 
 export class HomePage extends RootWidget {
     #rootViewModel;
@@ -31,10 +32,12 @@ export class HomePage extends RootWidget {
         const footer3 = this.#createButton('↓', this.#commandForDirection(BlockDirection.South));
         const footer4 = this.#createButton('←', this.#commandForDirection(BlockDirection.West));
 
+        const download = this.#createButton('Download\nJSON', this.#onDownloading.bind(this));
+
         const footer = new HorizontalGridWidget();
         footer.Spacing = 10;
         footer.Constraints.With('height', 60);
-        footer.Widgets = [footer1, footer2, footer3, footer4];
+        footer.Widgets = [footer1, footer2, footer3, footer4, download];
 
         const view3dHost = new ContainerWidget();
 
@@ -53,6 +56,32 @@ export class HomePage extends RootWidget {
         this.view3dHost = view3dHost;
         this.imageHost = imageHost;
         this.Content = content;
+    }
+
+    #onDownloading() {
+
+        const json = SaveHouseToJson.toJsonString(this.#rootViewModel);
+
+        /*
+        Create a Blob:
+        Convert the data into a Blob object. A Blob represents file-like immutable raw data.
+         The Blob constructor takes an array of data parts and an options object, where type 
+         can specify the MIME type of the file (e.g., 'text/plain', 'text/csv', 'application/json').
+        */
+
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = 'house.json';
+
+        //    document.body.appendChild(a); // Optional, for compatibility
+        a.click();
+        // document.body.removeChild(a); // Optional, for cleanup
+
+        URL.revokeObjectURL(url);
     }
 
     #createButton(title, command) {
