@@ -7,7 +7,9 @@ export default class FpsScenePlugin extends ScenePluginBase {
     constructor() {
         super();
         this.#stats = new Stats();
-        this.#stats.dom.style.top = '150px';
+        //this.#stats.dom.style.top = '150px';
+        //this.#stats.dom.style.left = 'auto';
+        //this.#stats.dom.style.right = '10px';
     }
 
     onSceneCreated(viewManager) {

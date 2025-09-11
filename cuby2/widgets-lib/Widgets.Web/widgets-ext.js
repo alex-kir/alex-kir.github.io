@@ -288,7 +288,7 @@ export class VerticalGridWidget extends ContainerWidget {
         this.SizeValue.Subscribe(this.Layout.bind(this));
         this.WidgetsValue.Subscribe(this.Layout.bind(this));
     }
-  
+
     Layout() {
         const widgets = this.Widgets;
         if (!widgets)
@@ -323,10 +323,16 @@ export class VerticalGridWidget extends ContainerWidget {
 
 
 export class VericalStackWidget extends ContainerWidget {
-    
+
+    static #zeroPadding = [0, 0, 0, 0];
+
     SpacingValue = new BindableValue(0);
     get Spacing() { return this.SpacingValue.Value };
     set Spacing(value) { this.SpacingValue.Value = value; }
+
+    PaddingValue = new BindableValue(VericalStackWidget.#zeroPadding);
+    get Padding() { return this.PaddingValue.Value };
+    set Padding(value) { this.PaddingValue.Value = value; } // TODO validate value
 
     constructor() {
         super();
@@ -339,7 +345,8 @@ export class VericalStackWidget extends ContainerWidget {
         if (!widgets)
             return;
         const n = widgets.length;
-        let y = 0;
+        const [paddingLeft, paddingTop, paddingRight, paddingBottom] = this.Padding;
+        let y = paddingTop;
         const width = this.Size[0];
         for (let i = 0; i < n; i++) {
             if (i > 0)
@@ -347,11 +354,14 @@ export class VericalStackWidget extends ContainerWidget {
             const wid = widgets[i];
             const cc = wid.Constraints;
             const childHeight = cc.Has('height') ? cc.Get('height') : wid.Size[1];
-            wid.Position = [0, y];
-            wid.Size = [width, childHeight];
+            const childLeft = cc.Has('left') ? cc.Get('left') : 0;
+            const childRight = cc.Has('right') ? cc.Get('right') : 0;
+            wid.Position = [childLeft + paddingLeft, y];
+            wid.Size = [width - childLeft - childRight - paddingLeft - paddingRight, childHeight];
             y = y + wid.Size[1];
         }
 
+        y += paddingBottom;
         const [x, y0] = this.Size;
         if (y0 != y) {
             this.Size = [x, y];
@@ -387,6 +397,9 @@ export class ButtonWidget extends OverflowWidget {
     TextColorValue = new BindableValue(null);
     get TextColor() { return this.TextColorValue.Value };
     set TextColor(value) { this.TextColorValue.Value = value; }
+
+    get TextAlignment() { return this.#_text.TextAlignment };
+    set TextAlignment(value) { this.#_text.TextAlignment = value; }
 
     ClickAction = null;
     Command = null;

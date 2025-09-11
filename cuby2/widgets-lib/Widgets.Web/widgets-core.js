@@ -204,9 +204,12 @@ export class TextWidget extends AWidget {
     get TextAlignment() { return this.TextAlignmentValue.Value };
     set TextAlignment(value) { this.TextAlignmentValue.Value = value; }
 
-    TextSizeValue = new BindableValue(16);
-    get TextSize() { return this.TextSizeValue.Value };
-    set TextSize(value) { this.TextSizeValue.Value = value; }
+    FontSizeValue = new BindableValue(16);
+    get FontSize() { return this.FontSizeValue.Value };
+    set FontSize(value) { this.FontSizeValue.Value = value; }
+    get TextSize() { return this.FontSizeValue.Value };
+    set TextSize(value) { this.FontSizeValue.Value = value; }
+
 }
 
 export class CanvasWidget extends AWidget {
@@ -423,8 +426,8 @@ export class ViewFactory {
                 div.innerText = widget.Text;
             }, div._disposables);
 
-            widget.TextSizeValue.Subscribe(function () {
-                div.style['font-size'] = `${widget.TextSize}px`;
+            widget.FontSizeValue.Subscribe(function () {
+                div.style['font-size'] = `${widget.FontSize}px`;
             }, div._disposables);
 
             widget.TextColorValue.Subscribe(function () {

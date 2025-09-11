@@ -119,4 +119,15 @@ export class BlockModel {
     //         return false;
     //     return true;
     // }
+
+    forEachCell(func) {
+        for (let iByWi = 0; iByWi < this.#realWidth; iByWi++) {
+            for (let iByHe = 0; iByHe < this.#realHeight; iByHe++) {
+                const x = this.#realX + iByWi;
+                const y = this.#realY + iByHe;
+                const sub = x == this.x && y == this.y ? 'a' : 'b'; // FIXME: work only for 1x1 and 1x2 blocks
+                func(this, x, y, sub);
+            }
+        }
+    }
 }

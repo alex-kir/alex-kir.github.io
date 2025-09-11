@@ -21,7 +21,47 @@ export default class HouseViewModel {
 
     setDirection(direction) {
         this.activeDirection = direction;
+        this.#fixRotation();
         this.#fireChanged();
+    }
+
+    rotateLeft() {
+        switch (this.activeDirection) {
+            case 0: this.activeDirection = 270; break;
+            case 90: this.activeDirection = 0; break;
+            case 180: this.activeDirection = 90; break;
+            case 270: this.activeDirection = 180; break;
+        }
+        this.#fixRotation(-1);
+        this.#fireChanged();
+    }
+
+    rotateRight() {
+        switch (this.activeDirection) {
+            case 0: this.activeDirection = 90; break;
+            case 90: this.activeDirection = 180; break;
+            case 180: this.activeDirection = 270; break;
+            case 270: this.activeDirection = 0; break;
+        }
+        this.#fixRotation();
+        this.#fireChanged();
+    }
+
+    #fixRotation(mode) {
+        if (this.activeBlockName.startsWith('house_')) {
+            if (mode === -1) {
+                switch (this.activeDirection) {
+                    case 90: this.activeDirection = 0; break;
+                    case 270: this.activeDirection = 180; break;
+                }
+            }
+            else {
+                switch (this.activeDirection) {
+                    case 90: this.activeDirection = 180; break;
+                    case 270: this.activeDirection = 0; break;
+                }
+            }
+        }
     }
 
     setBlockName(name) {

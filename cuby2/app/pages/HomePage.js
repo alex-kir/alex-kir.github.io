@@ -1,9 +1,10 @@
-import { RootWidget, ContainerWidget } from 'widgets/widgets-core.js';
-import { ButtonWidget, HorizontalGridWidget, VerticalGridWidget } from 'widgets/widgets-ext.js';
+import { RootWidget, ContainerWidget, ScrollWidget, TextWidget } from 'widgets/widgets-core.js';
+import { OverflowWidget, VericalStackWidget, ButtonWidget, HorizontalGridWidget, VerticalGridWidget } from 'widgets/widgets-ext.js';
 import { BlockDirection } from '../models/BlockModel.js';
-import { OverflowWidget } from '../../widgets-lib/Widgets.Web/widgets-ext.js';
 import { CMS } from '../models/CMS.js';
 import { SaveHouseToJson } from '../models/SaveHouseToJson.js';
+import { BorderWidget } from '../../widgets-lib/Widgets.Web/widgets-ext.js';
+import HouseModel from '../models/HouseModel.js';
 
 export class HomePage extends RootWidget {
     #rootViewModel;
@@ -13,31 +14,43 @@ export class HomePage extends RootWidget {
     constructor(rootViewModel) {
         super();
         this.#rootViewModel = rootViewModel;
+        const vm = this.#rootViewModel.houseViewModel;
 
         const buttons = [];
         for (let i = 1; i <= 6; i = i + 1) {
             const { id, title } = CMS.getEntity(`key|${i}`);
-            buttons.push(this.#createButton(title, this.#commandForTool(id)));
+            const titleOn = '\u25c9 ' + title.replace('\n', ' ');
+            const titleOff = '\u2b58 ' + title.replace('\n', ' ');
+            const button = this.#createButtonNoBorder(titleOff, function () {
+                vm.setBlockName(id);
+            });
+            vm.activeToolChanged.subscribeAndNotify(function () {
+                button.Text = vm.activeBlockName == id ? titleOn : titleOff;
+            });
+            button.TextAlignment = [-1, 0];
+            button.Constraints.With('height', 32);
+            buttons.push(button);
         }
 
-        const header = new HorizontalGridWidget();
-        header.Spacing = 8;
-        header.Constraints.With('height', 60);
-        header.Widgets = buttons;
+        // const header = new HorizontalGridWidget();
+        // header.Spacing = 8;
+        // header.Constraints.With('height', 60);
+        // header.Widgets = buttons;
 
         // ← → ↔ ↑ ↓ , ↕
         //'🡅' '🡆' '🡇' '🡄'
-        const footer1 = this.#createButton('↑', this.#commandForDirection(BlockDirection.North));
-        const footer2 = this.#createButton('→', this.#commandForDirection(BlockDirection.East));
-        const footer3 = this.#createButton('↓', this.#commandForDirection(BlockDirection.South));
-        const footer4 = this.#createButton('←', this.#commandForDirection(BlockDirection.West));
+        // const footer1 = this.#createButton('↑', this.#commandForDirection(BlockDirection.North));
+        // const footer2 = this.#createButton('→', this.#commandForDirection(BlockDirection.East));
+        // const footer3 = this.#createButton('↓', this.#commandForDirection(BlockDirection.South));
+        // const footer4 = this.#createButton('←', this.#commandForDirection(BlockDirection.West));
 
-        const download = this.#createButton('Download\nJSON', this.#onDownloading.bind(this));
+        const download = this.#createButton('Download JSON', this.#onDownloading.bind(this));
+        download.Constraints.With('height', 32);
 
-        const footer = new HorizontalGridWidget();
-        footer.Spacing = 10;
-        footer.Constraints.With('height', 60);
-        footer.Widgets = [footer1, footer2, footer3, footer4, download];
+        // const footer = new HorizontalGridWidget();
+        // footer.Spacing = 10;
+        // footer.Constraints.With('height', 60);
+        // footer.Widgets = [footer1, footer2, footer3, footer4];
 
         const view3dHost = new ContainerWidget();
 
@@ -50,12 +63,91 @@ export class HomePage extends RootWidget {
         const host2 = new OverflowWidget();
         host2.Widgets = [view3dHost, imageHost];
 
-        const content = new VerticalGridWidget();
-        content.Widgets = [header, host2, footer];
+        // const content = new VerticalGridWidget();
+        // content.Widgets = [host2, footer];
+
+        const step1 = new TextWidget();
+        step1.Text = '⏷ Step 1. Place modules';
+        step1.Constraints.With('height', 64);
+        step1.TextAlignment = [-1, 0];
+        step1.FontSize = 20;
+
+        const space = new TextWidget();
+        space.Constraints.With('height', 32);
+        space.Text = "Rotate";
+        space.TextAlignment = [-1, 0];
+
+        const rotateLeft = this.#createButton('← Left', function () { vm.rotateLeft(); });
+        const rotateRight = this.#createButton('→ Right', function () { vm.rotateRight(); });
+
+        const rotate = new HorizontalGridWidget();
+        rotate.Constraints.With('height', 32);
+        rotate.Widgets = [rotateLeft, rotateRight];
+
+        const step2 = new TextWidget();
+        step2.Text = '⏷ Step 2. Save to JSON';
+        step2.Constraints.With('height', 64);
+        step2.TextAlignment = [-1, 0];
+        step2.FontSize = 20;
+
+        const printUndefined = this.#createButton('Print Undefined', this.#printUndefined.bind(this));
+        printUndefined.Constraints.With('height', 32);
+
+        const validationMode = this.#createValidataionMode();
+
+
+        const step3 = new TextWidget();
+        step3.Text = '⏵ Step 3. - - -';
+        step3.Constraints.With('height', 64);
+        step3.TextAlignment = [-1, 0];
+        step3.FontSize = 20;
+
+
+        const stack = new VericalStackWidget();
+        stack.Padding = [8, 8, 8, 8];
+        stack.Spacing = 4;
+        stack.Widgets = [step1, ...buttons, space, rotate, step2, download, printUndefined, validationMode, step3];
+
+        const scroll = new ScrollWidget();
+        scroll.Constraints.With('width', 300);
+        scroll.Content = stack;
+
+        const line = new BorderWidget();
+        line.Constraints.With('width', 5);
+        line.FillColor = '#ccc';
+
+        const grid = new HorizontalGridWidget();
+        grid.Widgets = [host2, line, scroll];
 
         this.view3dHost = view3dHost;
         this.imageHost = imageHost;
-        this.Content = content;
+        this.Content = grid;
+    }
+
+    #createValidataionMode()
+    {
+        // ☐ U+2610 — пустой чекбокс
+        // ☑ U+2611 — отмеченный чекбокс
+        // ☒ U+2612 — чекбокс с крестиком
+
+        const title = 'Preferably allowed';
+        const titleOn = '\u2611 ' + title;
+        const titleOff = '\u2610 ' + title;
+        const button = this.#createButtonNoBorder(titleOff, function () {
+            HouseModel.validatePlacementDefaults = !HouseModel.validatePlacementDefaults;
+            button.Text = HouseModel.validatePlacementDefaults ? titleOn : titleOff;
+        });
+        button.Text = HouseModel.validatePlacementDefaults ? titleOn : titleOff;
+        // vm.activeToolChanged.subscribeAndNotify(function () {
+        //     button.Text = vm.activeBlockName == id ? titleOn : titleOff;
+        // });
+        button.TextAlignment = [-1, 0];
+        button.Constraints.With('height', 32);
+        return button;
+    }
+
+    #printUndefined() {
+        this.#rootViewModel.houseViewModel.houseModel.printUndefinedRules();
     }
 
     #onDownloading() {
@@ -84,6 +176,16 @@ export class HomePage extends RootWidget {
         URL.revokeObjectURL(url);
     }
 
+    #createButtonNoBorder(title, command) {
+        const button = new ButtonWidget();
+        // button.Radius = 6;
+        // button.StrokeColor = '#ccc';
+        // button.StrokeThickness = 1;
+        button.Text = title;
+        button.Command = command;
+        return button;
+    }
+
     #createButton(title, command) {
         const button = new ButtonWidget();
         button.Radius = 6;
@@ -94,13 +196,13 @@ export class HomePage extends RootWidget {
         return button;
     }
 
-    #commandForTool(name) {
-        const vm = this.#rootViewModel.houseViewModel;
-        return function () { vm.setBlockName(name); };
-    }
+    // #commandForTool(name) {
+    //     const vm = this.#rootViewModel.houseViewModel;
+    //     return function () { vm.setBlockName(name); };
+    // }
 
-    #commandForDirection(name) {
-        const vm = this.#rootViewModel.houseViewModel;
-        return function () { vm.setDirection(name); };
-    }
+    // #commandForDirection(name) {
+    //     const vm = this.#rootViewModel.houseViewModel;
+    //     return function () { vm.setDirection(name); };
+    // }
 }

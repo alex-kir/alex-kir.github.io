@@ -23,12 +23,10 @@ export class SaveHouseToJson {
 
         for (const block of blocks) {
             if (block instanceof BlockModel) {
-                for (let dx = 0; dx < block.realWidth; dx++) {
-                    for (let dy = 0; dy < block.realHeight; dy++) {
-                        minX = Math.min(minX, block.realX + dx);
-                        minY = Math.min(minY, block.realY + dy);
-                    }
-                }
+                block.forEachCell(function (b, x, y, sub) {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                });
             }
         }
 

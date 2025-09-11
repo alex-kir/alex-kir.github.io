@@ -5,6 +5,7 @@ export default class ScenePluginBase {
 
     #viewManager;
 
+    get viewManager() { return this.#viewManager; }
     get scene() { return this.#viewManager.scene; }
     get houseViewModel() { return this.#viewManager.rootViewModel.houseViewModel; }
     get houseModel() { return this.#viewManager.rootViewModel.houseViewModel.houseModel; }

@@ -7,9 +7,6 @@ import { CMS } from '../models/CMS.js'
 
 class HouseModelEditorViewPlugin extends ScenePluginBase {
 
-    #viewManager;
-    #houseViewModel;
-
     #plane;
     #cursor = new CubeCursor();
     #modelsForCursor;
@@ -25,24 +22,23 @@ class HouseModelEditorViewPlugin extends ScenePluginBase {
     }
 
     onSceneCreated(viewManager) {
-        this.#viewManager = viewManager;
-        this.#houseViewModel = viewManager.rootViewModel.houseViewModel;
+        super.onSceneCreated(viewManager);
 
         this.#modelsForCursor = new Map();
         for (const { id, fbxName } of CMS.getEntities('block')) {
             this.#modelsForCursor.set(id, shared_resource_manager.get_object(fbxName));
         }
 
-        const subscription = viewManager.rootViewModel.houseViewModel.activeToolChanged.subscribeAndNotify(this.#onToolChanged.bind(this));
+        const subscription = this.houseViewModel.activeToolChanged.subscribeAndNotify(this.#onToolChanged.bind(this));
 
         this.#cursor.setScene(viewManager.scene);
     }
 
     #onToolChanged() {
-        this.#cursor.setDirection(this.#houseViewModel.activeDirection);
-        this.#activeModel = this.#modelsForCursor.get(this.#houseViewModel.activeBlockName);
+        this.#cursor.setDirection(this.houseViewModel.activeDirection);
+        this.#activeModel = this.#modelsForCursor.get(this.houseViewModel.activeBlockName);
 
-        if (this.#viewManager.rootViewModel.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
+        if (this.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
             this.#cursor.setModel(this.#activeModel);
         }
         else {
@@ -51,9 +47,6 @@ class HouseModelEditorViewPlugin extends ScenePluginBase {
     }
 
     onPointerMove(event, raycaster) {
-        if (!this.#viewManager)
-            return;
-
         const intersects = raycaster.intersectObject(this.#plane, true);
 
         if (intersects.length === 0) {
@@ -64,7 +57,7 @@ class HouseModelEditorViewPlugin extends ScenePluginBase {
 
         this.#cursor.showAt(intersect.point);
 
-        if (this.#viewManager.rootViewModel.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
+        if (this.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
             this.#cursor.setModel(this.#activeModel);
         }
         else {
@@ -79,11 +72,11 @@ class HouseModelEditorViewPlugin extends ScenePluginBase {
         if (!this.#cursor.visible)
             return;
 
-        if (this.#viewManager.rootViewModel.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
-            this.#viewManager.rootViewModel.houseViewModel.placeAtCoords(this.#cursor.getCoords());
+        if (this.houseViewModel.canPlaceAtCoords(this.#cursor.getCoords())) {
+            this.houseViewModel.placeAtCoords(this.#cursor.getCoords());
         }
         else {
-            this.#viewManager.rootViewModel.houseViewModel.removeAtCoords(this.#cursor.getCoords());
+            this.houseViewModel.removeAtCoords(this.#cursor.getCoords());
         }
         this.#cursor.setModel(null);
     }
