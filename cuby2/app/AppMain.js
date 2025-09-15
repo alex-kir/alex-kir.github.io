@@ -1,5 +1,10 @@
 
-import { shared_view_manager } from './app_view_manager.js';
+
+import { SinglePageWindow } from 'widgets/widgets-core.js';
+import { HomePage } from './pages/HomePage.js';
+import AppSceneManager from './AppSceneManager.js';
+import AppResourceManager from './AppResourceManager.js'
+import RootViewModel from './models/RootViewModel.js';
 
 import './plugins/DrawPlaneScenePlugin.js';
 import './plugins/CameraControlScenePlugin.js';
@@ -9,15 +14,19 @@ import './plugins/HotkeysScenePlugin.js'
 import './plugins/SyncHouseBlocksScenePlugin.js';
 import './plugins/SyncHouseColumnsScenePlugin.js'
 
-import { HomePage } from './pages/HomePage.js';
-import { SinglePageWindow } from 'widgets/widgets-core.js';
-
 export function AppMain(container) {
 
-    const page = new HomePage(shared_view_manager.rootViewModel);
-    new SinglePageWindow(container).Show(page);
+    const resourceManager = new AppResourceManager();
 
-    shared_view_manager.init(page.view3dHost.PlatformView);
+    const rootViewModel = new RootViewModel(resourceManager);
+    rootViewModel.loadPlugins();
+
+    const page = new HomePage(rootViewModel);
+    const window = new SinglePageWindow(container);
+    window.Show(page);
+
+    const sceneManager = new AppSceneManager();
+    sceneManager.init(page.view3dHost.PlatformView, rootViewModel);
 
     var img = document.createElement('img');
     img.style.position = 'absolute';

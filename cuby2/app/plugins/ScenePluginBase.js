@@ -1,7 +1,7 @@
 
-import { shared_view_manager } from '../app_view_manager.js';
-
 export default class ScenePluginBase {
+
+    static registeredPluginClasses = [];
 
     #viewManager;
 
@@ -9,6 +9,7 @@ export default class ScenePluginBase {
     get scene() { return this.#viewManager.scene; }
     get houseViewModel() { return this.#viewManager.rootViewModel.houseViewModel; }
     get houseModel() { return this.#viewManager.rootViewModel.houseViewModel.houseModel; }
+    get resourceManager() { return this.#viewManager.rootViewModel.resourceManager; }
 
     onSceneCreated(viewManager) {
         this.#viewManager = viewManager;
@@ -29,7 +30,9 @@ export default class ScenePluginBase {
     onDocumentKeyUp(event) {
     }
 
+    getWidget() { return null; }
+
     static registerPlugin(pluginClass) {
-        shared_view_manager.addPlugin(new pluginClass());
+        ScenePluginBase.registeredPluginClasses.push(pluginClass);
     }
 }

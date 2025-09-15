@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import { shared_view_manager } from './app_view_manager.js';
-import { deg } from './utils.js';
+import { deg, Signal } from './utils.js';
 
-class app_resource_manager_class {
+export default class AppResourceManager {
     #_fbxLoader;
     #_cache;
     #_inProgress;
+
+    requestRender = new Signal();
 
     constructor() {
         this.#_fbxLoader = new FBXLoader();
@@ -14,7 +15,7 @@ class app_resource_manager_class {
         this.#_inProgress = new Map();
     }
 
-    get_object(name) {
+    getObject(name) {
 
         if (name == 'column')
             return this.#createColumn();
@@ -38,7 +39,7 @@ class app_resource_manager_class {
                 list.push(result);
                 inProgress.set(name, list);
                 // const self = this;
-                this.#_fbxLoader.load('models/' + name + '.fbx', function (obj) {
+                this.#_fbxLoader.load('models/' + name + '.fbx', (obj) => {
 
                     obj.scale.set(0.1, 0.1, 0.1);
 
@@ -54,7 +55,7 @@ class app_resource_manager_class {
                     });
 
                     if (list.length) {
-                        shared_view_manager.render();
+                        this.requestRender.notify();
                     }
 
                     list.length = 0;
@@ -115,5 +116,3 @@ class app_resource_manager_class {
         return new THREE.Mesh(this.#grassGeometry, this.#grassMaterial);
     }
 }
-
-export const shared_resource_manager = new app_resource_manager_class();

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import ScenePluginBase from './ScenePluginBase.js';
 import { copyCoordsToPos, cellSize, cellCount } from '../utils.js';
-import { shared_resource_manager } from '../app_resource_manager.js';
 
 class DrawPlaneScenePlugin extends ScenePluginBase {
 
@@ -16,20 +15,20 @@ class DrawPlaneScenePlugin extends ScenePluginBase {
         // grid
         this.#grid = new THREE.GridHelper(cellSize * cellCount, cellCount, 0xaaffaa, 0xaaffaa);
 
-        this.#cube = new THREE.Mesh(
-            new THREE.BoxGeometry(200, 5, 200),
-            new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
-        copyCoordsToPos(0, 0, this.#cube.position);
+        // this.#cube = new THREE.Mesh(
+        //     new THREE.BoxGeometry(200, 5, 200),
+        //     new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
+        // copyCoordsToPos(0, 0, this.#cube.position);
 
-        this.#cubeX = new THREE.Mesh(
-            new THREE.BoxGeometry(100, 5, 100),
-            new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
-        copyCoordsToPos(2, 0, this.#cubeX.position);
+        // this.#cubeX = new THREE.Mesh(
+        //     new THREE.BoxGeometry(100, 5, 100),
+        //     new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
+        // copyCoordsToPos(2, 0, this.#cubeX.position);
 
-        this.#cubeY = new THREE.Mesh(
-            new THREE.BoxGeometry(100, 5, 100),
-            new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
-        copyCoordsToPos(0, 1, this.#cubeY.position);
+        // this.#cubeY = new THREE.Mesh(
+        //     new THREE.BoxGeometry(100, 5, 100),
+        //     new THREE.MeshBasicMaterial({ color: 0x3f9d7b, transparent: true, opacity: 0.2 }));
+        // copyCoordsToPos(0, 1, this.#cubeY.position);
 
     }
 
@@ -37,14 +36,14 @@ class DrawPlaneScenePlugin extends ScenePluginBase {
         super.onSceneCreated(viewManager);
 
         viewManager.scene.add(this.#grid);
-        viewManager.scene.add(this.#cube);
-        viewManager.scene.add(this.#cubeX);
-        viewManager.scene.add(this.#cubeY);
+        // viewManager.scene.add(this.#cube);
+        // viewManager.scene.add(this.#cubeX);
+        // viewManager.scene.add(this.#cubeY);
 
         
         for (let cellX = -10; cellX < 10; cellX++) {
             for (let cellY = -10; cellY < 10; cellY++) {
-                const sceneObj = shared_resource_manager.get_object('grass');
+                const sceneObj = this.resourceManager.getObject('grass');
                 this.scene.add(sceneObj);
                 copyCoordsToPos(cellX, cellY, sceneObj.position);
             }

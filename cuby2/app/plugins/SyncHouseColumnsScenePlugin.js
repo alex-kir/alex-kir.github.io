@@ -1,11 +1,24 @@
 import ScenePluginBase from './ScenePluginBase.js';
-import { shared_resource_manager } from '../app_resource_manager.js';
-import { BlockModel } from '../models/BlockModel.js';
 import { coordsToXZ, Linq } from '../utils.js'
 
-class SyncHouseColumnsScenePlugin extends ScenePluginBase {
+import { RootWidget, ContainerWidget, ScrollWidget, TextWidget } from 'widgets/widgets-core.js';
 
+class SyncHouseColumnsScenePlugin extends ScenePluginBase {
+    #widget;
     #columnSceneObjs = [];
+
+    constructor() {
+        super();
+
+        const text = new TextWidget();
+        text.Constraints.With('height', 48);
+        text.Text = '\u2611 Show House Columns';
+        text.TextAlignment = [-1, 0];
+
+        this.#widget = text;
+    }
+
+    getWidget() { return [this.#widget, 100]; }
 
     onSceneCreated(vm) {
         super.onSceneCreated(vm);
@@ -24,7 +37,7 @@ class SyncHouseColumnsScenePlugin extends ScenePluginBase {
                     continue;
                 }
 
-                const sceneObj = shared_resource_manager.get_object('column');
+                const sceneObj = this.resourceManager.getObject('column');
                 this.scene.add(sceneObj);
                 this.#columnSceneObjs.push(sceneObj);
                 sceneObj.position.set(cX, 0, cZ);

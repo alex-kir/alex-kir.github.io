@@ -110,6 +110,29 @@ export class ObservableUnit {
 }
 
 export class Linq {
+
+    #array;
+
+    constructor(array) {
+        this.#array = array;
+    }
+
+    ToArray() {
+        return this.#array;
+    }
+
+    ToList() {
+        return this.#array;
+    }
+
+    OrderBy(func) {
+        return new Linq(Linq.OrderBy(this.#array, func));
+    }
+
+    Select(func) {
+        return new Linq(Linq.Select(this.#array, func));
+    }
+
     static Select(array, func) {
         return array.map(func);
     }

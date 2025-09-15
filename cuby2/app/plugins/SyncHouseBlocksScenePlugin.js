@@ -1,5 +1,4 @@
 import ScenePluginBase from './ScenePluginBase.js';
-import { shared_resource_manager } from '../app_resource_manager.js'
 import { copyCoordsToPos, deg, Linq } from '../utils.js'
 import { CMS } from '../models/CMS.js'
 import findIslands, { getOneToManyIslandTouches } from './IslandUtils.js'
@@ -22,7 +21,7 @@ class SyncHouseBlocksScenePlugin extends ScenePluginBase {
         }
 
         const { fbxName } = CMS.getEntity('block', block.name);
-        const sceneObj = shared_resource_manager.get_object(fbxName);
+        const sceneObj = this.resourceManager.getObject(fbxName);
 
         sceneObj.rotation.set(0, deg(-block.direction), 0);
 

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import ScenePluginBase from './ScenePluginBase.js';
-import { shared_resource_manager } from '../app_resource_manager.js';
 import { CubeCursor } from './CubeCursor.js';
 import { cellCount, cellSize } from '../utils.js';
 import { CMS } from '../models/CMS.js'
@@ -26,7 +25,7 @@ class HouseModelEditorViewPlugin extends ScenePluginBase {
 
         this.#modelsForCursor = new Map();
         for (const { id, fbxName } of CMS.getEntities('block')) {
-            this.#modelsForCursor.set(id, shared_resource_manager.get_object(fbxName));
+            this.#modelsForCursor.set(id, this.resourceManager.getObject(fbxName));
         }
 
         const subscription = this.houseViewModel.activeToolChanged.subscribeAndNotify(this.#onToolChanged.bind(this));

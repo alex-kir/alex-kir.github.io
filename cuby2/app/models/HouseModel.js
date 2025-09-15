@@ -1,6 +1,6 @@
 import { Signal } from '../utils.js'
 import { BlockModel } from './BlockModel.js';
-import { Rules } from './Rules.js';
+import { CMS } from './CMS.js';
 
 class debug {
     static #isDev = '?';
@@ -64,13 +64,12 @@ export default class HouseModel {
         return true;
     }
 
-    printUndefinedRules()
-    {
+    printUndefinedRules() {
         HouseModel.#allUndefinedRules.clear();
-
         HouseModel.#validatePlacement(this.#blocks);
-
-        console.log('#allUndefinedRules = ', [...HouseModel.#allUndefinedRules].join('\n'));
+        const result = [...HouseModel.#allUndefinedRules].join('\n');
+        console.log(result);
+        return result;
     }
 
     static #validatePlacement(blocks) {
@@ -79,57 +78,85 @@ export default class HouseModel {
         const cells = [];
         for (const block of blocks) {
             if (block instanceof BlockModel) {
-                block.forEachCell(function (b, x, y, sub) {
-                    cells.push([b, x, y, sub]);
+                block.forEachCell(function (b, x, y) {
+                    cells.push([b, x, y]);
                 });
             }
         }
 
         // --- convert to matrix ---
         const matrix = new Map();
-        for (const [b, x, y, sub] of cells) {
+        if (HouseModel.validatePlacementDefaults) {
+            for (const [b, x, y] of cells) {
 
-            const key = `${x}:${y}`;
-            const value = Rules.remapBlockCode(`${b.name}:${b.direction}:${sub}`);
+                const code = b.getCode(x, y);
+
+                if (matrix.has(`${x - 1}:${y}`))
+                    if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), code, 'hor', true))
+                        return false;
+
+                if (matrix.has(`${x + 1}:${y}`))
+                    if (!HouseModel.#isAllowed(code, matrix.get(`${x + 1}:${y}`), 'hor', true))
+                        return false;
+
+                if (matrix.has(`${x}:${y - 1}`))
+                    if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), code, 'ver', true))
+                        return false;
+
+                if (matrix.has(`${x}:${y + 1}`))
+                    if (!HouseModel.#isAllowed(code, matrix.get(`${x}:${y + 1}`), 'ver', true))
+                        return false;
+
+                matrix.set(`${x}:${y}`, code);
+            }
             
-            if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), value, 'hor'))
-                return false;
-
-            if (!HouseModel.#isAllowed(value, matrix.get(`${x + 1}:${y}`), 'hor'))
-                return false;
-
-            if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), value, 'ver'))
-                return false;
-
-            if (!HouseModel.#isAllowed(value, matrix.get(`${x}:${y + 1}`), 'ver'))
-                return false;
-
-            matrix.set(key, value);
+            return true;
         }
+        else {
+            for (const [b, x, y] of cells) {
 
-        // ---------
+                const code = b.getCode(x, y);
 
-        return HouseModel.validatePlacementDefaults;
+                if (matrix.has(`${x - 1}:${y}`))
+                    if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), code, 'hor', false))
+                        return false;
+
+                if (matrix.has(`${x + 1}:${y}`))
+                    if (!HouseModel.#isAllowed(code, matrix.get(`${x + 1}:${y}`), 'hor', false))
+                        return false;
+
+                if (matrix.has(`${x}:${y - 1}`))
+                    if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), code, 'ver', false))
+                        return false;
+
+                if (matrix.has(`${x}:${y + 1}`))
+                    if (!HouseModel.#isAllowed(code, matrix.get(`${x}:${y + 1}`), 'ver', false))
+                        return false;
+
+                matrix.set(`${x}:${y}`, code);
+            }
+
+            return true;
+        }
     }
 
-    static validatePlacementDefaults = true;
+    static validatePlacementDefaults = false;
 
     static #allUndefinedRules = new Set();
 
-    static #isAllowed(left, right, dir) {
+    static #isAllowed(left, right, dir, defolt) {
         if (left) {
             if (right) {
-                for (const [left1, right1, dir1, allowed] of Rules.allRules) {
-                    if (left == left1 && right == right1 && dir1 == dir) {
-                        return allowed;
-                    }
-                }
+                const rule = CMS.findEntity('rules', dir, left, right);
+                if (rule)
+                    return rule.allowed;
 
-                const newRule = `['${left}', '${right}', '${dir}', true],`;
-                    HouseModel.#allUndefinedRules.add(newRule);
+                // const newRule = `data.set('rules|${dir}|${left}|${right}', allowed);`;
+                const newRule = `${dir}|${left}|${right}`;
+                HouseModel.#allUndefinedRules.add(newRule);
             }
         }
-        return true;
+        return defolt;
     }
 
 }

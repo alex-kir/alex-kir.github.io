@@ -125,9 +125,53 @@ export class BlockModel {
             for (let iByHe = 0; iByHe < this.#realHeight; iByHe++) {
                 const x = this.#realX + iByWi;
                 const y = this.#realY + iByHe;
-                const sub = x == this.x && y == this.y ? 'a' : 'b'; // FIXME: work only for 1x1 and 1x2 blocks
-                func(this, x, y, sub);
+                func(this, x, y);
             }
         }
+    }
+
+    getCode(x, y) {
+        let byDirs = [0, 0, 0, 0];
+        switch (this.name) {
+            case 'house_6x3':
+                if (this.x == x && this.y == y)
+                    byDirs = [303, 0, 305, 0];
+                else
+                    byDirs = [302, 0, 304, 0];
+                break;
+            case 'house_3x3_hi':
+                byDirs = [303, 0, 305, 0];
+                break;
+            case 'house_3x3_lo':
+                byDirs = [302, 0, 304, 0];
+                break;
+            case 'garage_6x3':
+                if (this.x == x && this.y == y)
+                    byDirs = [203, 207, 205, 209];
+                else
+                    byDirs = [202, 206, 204, 208];
+                break;
+            case 'veranda_3x3_hi':
+                byDirs = [523, 527, 525, 529];
+                break;
+            case 'veranda_3x3_lo':
+                byDirs = [522, 526, 524, 528];
+                break;
+        }
+
+        switch (this.#direction) {
+            case BlockDirection.North:
+                return byDirs[0];
+            case BlockDirection.East:
+                return byDirs[1];
+            case BlockDirection.South:
+                return byDirs[2];
+            case BlockDirection.West:
+                return byDirs[3];
+            default:
+                throw `unexpected direction: '${direction}'`;
+        }
+
+        return 0;
     }
 }

@@ -5,6 +5,7 @@ import { CMS } from '../models/CMS.js';
 import { SaveHouseToJson } from '../models/SaveHouseToJson.js';
 import { BorderWidget } from '../../widgets-lib/Widgets.Web/widgets-ext.js';
 import HouseModel from '../models/HouseModel.js';
+import { Linq } from '../utils.js'
 
 export class HomePage extends RootWidget {
     #rootViewModel;
@@ -77,12 +78,28 @@ export class HomePage extends RootWidget {
         space.Text = "Rotate";
         space.TextAlignment = [-1, 0];
 
-        const rotateLeft = this.#createButton('← Left', function () { vm.rotateLeft(); });
-        const rotateRight = this.#createButton('→ Right', function () { vm.rotateRight(); });
+        // ⟲ U+27F2 ⟳ U+27F3  ← → 
+        // ↶	ANTICLOCKWISE TOP SEMICIRCLE ARROW
+        // ↷	CLOCKWISE TOP SEMICIRCLE ARROW
+        const rotateLeft = this.#createButton('↶ Left', function () { vm.rotateLeft(); });
+        const rotateRight = this.#createButton('↷ Right', function () { vm.rotateRight(); });
 
         const rotate = new HorizontalGridWidget();
+        rotate.Spacing = 4;
         rotate.Constraints.With('height', 32);
         rotate.Widgets = [rotateLeft, rotateRight];
+
+        const stepRules = new TextWidget();
+        stepRules.Text = '⏷ Rules';
+        stepRules.Constraints.With('height', 64);
+        stepRules.TextAlignment = [-1, 0];
+        stepRules.FontSize = 20;
+
+        const validationMode = this.#createValidataionMode();
+
+        const printUndefined = this.#createButton('Copy undefined rules', this.#printUndefined.bind(this));
+        printUndefined.Constraints.With('height', 32);
+
 
         const step2 = new TextWidget();
         step2.Text = '⏷ Step 2. Save to JSON';
@@ -90,10 +107,6 @@ export class HomePage extends RootWidget {
         step2.TextAlignment = [-1, 0];
         step2.FontSize = 20;
 
-        const printUndefined = this.#createButton('Print Undefined', this.#printUndefined.bind(this));
-        printUndefined.Constraints.With('height', 32);
-
-        const validationMode = this.#createValidataionMode();
 
 
         const step3 = new TextWidget();
@@ -102,11 +115,22 @@ export class HomePage extends RootWidget {
         step3.TextAlignment = [-1, 0];
         step3.FontSize = 20;
 
+        const pluginWidgetInfos = [];
+        rootViewModel.forEachPlugin(p => {
+            const info = p.getWidget();
+            if (info)
+                pluginWidgetInfos.push(info);
+        });
+
+        const pluginWidgets = new Linq(pluginWidgetInfos)
+            .OrderBy(it => it.at(1))
+            .Select(it => it.at(0))
+            .ToList();
 
         const stack = new VericalStackWidget();
         stack.Padding = [8, 8, 8, 8];
         stack.Spacing = 4;
-        stack.Widgets = [step1, ...buttons, space, rotate, step2, download, printUndefined, validationMode, step3];
+        stack.Widgets = [step1, ...buttons, space, rotate, stepRules, validationMode, printUndefined, step2, download, step3, ...pluginWidgets];
 
         const scroll = new ScrollWidget();
         scroll.Constraints.With('width', 300);
@@ -124,13 +148,12 @@ export class HomePage extends RootWidget {
         this.Content = grid;
     }
 
-    #createValidataionMode()
-    {
+    #createValidataionMode() {
         // ☐ U+2610 — пустой чекбокс
         // ☑ U+2611 — отмеченный чекбокс
         // ☒ U+2612 — чекбокс с крестиком
 
-        const title = 'Preferably allowed';
+        const title = 'Allow if not defined';
         const titleOn = '\u2611 ' + title;
         const titleOff = '\u2610 ' + title;
         const button = this.#createButtonNoBorder(titleOff, function () {
@@ -147,7 +170,11 @@ export class HomePage extends RootWidget {
     }
 
     #printUndefined() {
-        this.#rootViewModel.houseViewModel.houseModel.printUndefinedRules();
+        const rules = this.#rootViewModel.houseViewModel.houseModel.printUndefinedRules();
+        if (rules.length)
+            navigator.clipboard.writeText('new rules:\n' + rules);
+        else
+            navigator.clipboard.writeText('no new rules found');
     }
 
     #onDownloading() {

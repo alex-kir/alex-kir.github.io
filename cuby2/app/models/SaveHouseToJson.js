@@ -23,7 +23,7 @@ export class SaveHouseToJson {
 
         for (const block of blocks) {
             if (block instanceof BlockModel) {
-                block.forEachCell(function (b, x, y, sub) {
+                block.forEachCell(function (b, x, y) {
                     minX = Math.min(minX, x);
                     minY = Math.min(minY, y);
                 });
@@ -34,21 +34,17 @@ export class SaveHouseToJson {
 
         for (const block of blocks) {
             if (block instanceof BlockModel) {
-                for (let dx = 0; dx < block.realWidth; dx++) {
-                    for (let dy = 0; dy < block.realHeight; dy++) {
-                        const item = {
-                            id: block.name,
-                            dir: block.direction,
-                            x: block.realX + dx - minX,
-                            y: block.realY + dy - minY,
-                        };
-                        data.push(item);
-                    }
-                }
+                block.forEachCell((b, x, y) => {
+                    data.push({
+                        code: b.getCode(x, y),
+                        x: x - minX,
+                        z: y - minY,
+                    });
+                });
             }
         }
 
-        const json = JSON.stringify(data, null, 2);// "Hello, world!";
+        const json = JSON.stringify(data, null, 2);
 
         return json;
     }

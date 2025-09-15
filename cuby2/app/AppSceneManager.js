@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import RootViewModel from './models/RootViewModel.js'
 
-class app_view_manager_class {
+export default class AppSceneManager {
 
-    #rootViewModel = new RootViewModel();
+    #rootViewModel;
     get rootViewModel() { return this.#rootViewModel; }
 
     get canvas() { return this.renderer.domElement; }
@@ -16,10 +16,14 @@ class app_view_manager_class {
     #raycaster = new THREE.Raycaster();
     #raycasterPointer = new THREE.Vector2();
 
-    #_plugins = [];
+    forEachPlugin(callback) {
+        this.#rootViewModel.forEachPlugin(callback);
+    }
 
-    init(container) {
+    init(container, rootViewModel) {
         // NOTE: using window as singleton is not good but OK for web-development
+
+        this.#rootViewModel = rootViewModel;
 
         const camera = new THREE.PerspectiveCamera(45, 320 / 240, 1, 10000);
         this.camera = camera;
@@ -47,7 +51,7 @@ class app_view_manager_class {
 
         // notify plugins
 
-        for (const p of this.#_plugins) { p.onSceneCreated(this); }
+        this.forEachPlugin(p => p.onSceneCreated(this));
 
         // subscribe to mouse and keyboard
 
@@ -61,28 +65,26 @@ class app_view_manager_class {
 
         new ResizeObserver(this.#onContainerResize.bind(this)).observe(container);
         this.#onContainerResize();
+
+        rootViewModel.resourceManager.requestRender.subscribe(() => this.render());
     }
 
-    #onPointerMove(event)
-    {
+    #onPointerMove(event) {
         this.#updateRaycaster(event);
-        for (const p of this.#_plugins) { p.onPointerMove(event, this.#raycaster); }
+        this.forEachPlugin(p => p.onPointerMove(event, this.#raycaster));
     }
 
-    #onPointerDown(event)
-    {
+    #onPointerDown(event) {
         this.#updateRaycaster(event);
-        for (const p of this.#_plugins) { p.onPointerDown(event, this.#raycaster); }
+        this.forEachPlugin(p => p.onPointerDown(event, this.#raycaster));
     }
 
-    #onDocumentKeyDown(event)
-    {
-        for (const p of this.#_plugins) { p.onDocumentKeyDown(event); }
+    #onDocumentKeyDown(event) {
+        this.forEachPlugin(p => p.onDocumentKeyDown(event));
     }
 
-    #onDocumentKeyUp(event)
-    {
-        for (const p of this.#_plugins) { p.onDocumentKeyUp(event); }
+    #onDocumentKeyUp(event) {
+        this.forEachPlugin(p => p.onDocumentKeyUp(event));
     }
 
     #updateRaycaster(event) {
@@ -91,7 +93,7 @@ class app_view_manager_class {
         const width = event.target.offsetWidth;
         const height = event.target.offsetHeight;
         this.#raycasterPointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
-        this.#raycaster.setFromCamera(this.#raycasterPointer, shared_view_manager.camera);
+        this.#raycaster.setFromCamera(this.#raycasterPointer, this.camera);
         return true;
     }
 
@@ -109,14 +111,7 @@ class app_view_manager_class {
     }
 
     render() {
-        for (const p of this.#_plugins) { p.onRender(this); }
-
+        this.forEachPlugin(p => p.onRender(this));
         this.renderer.render(this.scene, this.camera);
     }
-
-    addPlugin(plugin) {
-        this.#_plugins.push(plugin);
-    }
 }
-
-export const shared_view_manager = new app_view_manager_class();

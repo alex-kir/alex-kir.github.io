@@ -66,6 +66,7 @@ export default class HouseViewModel {
 
     setBlockName(name) {
         this.activeBlockName = name;
+        this.#fixRotation();
         this.#fireChanged();
     }
 
