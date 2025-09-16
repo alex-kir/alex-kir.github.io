@@ -86,58 +86,32 @@ export default class HouseModel {
 
         // --- convert to matrix ---
         const matrix = new Map();
-        if (HouseModel.validatePlacementDefaults) {
-            for (const [b, x, y] of cells) {
+        let result = true;
+        const defolt = HouseModel.validatePlacementDefaults;
+        for (const [b, x, y] of cells) {
 
-                const code = b.getCode(x, y);
+            const code = b.getCode(x, y);
 
-                if (matrix.has(`${x - 1}:${y}`))
-                    if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), code, 'hor', true))
-                        return false;
+            if (matrix.has(`${x - 1}:${y}`))
+                if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), code, 'hor', defolt))
+                    result = false;
 
-                if (matrix.has(`${x + 1}:${y}`))
-                    if (!HouseModel.#isAllowed(code, matrix.get(`${x + 1}:${y}`), 'hor', true))
-                        return false;
+            if (matrix.has(`${x + 1}:${y}`))
+                if (!HouseModel.#isAllowed(code, matrix.get(`${x + 1}:${y}`), 'hor', defolt))
+                    result = false;
 
-                if (matrix.has(`${x}:${y - 1}`))
-                    if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), code, 'ver', true))
-                        return false;
+            if (matrix.has(`${x}:${y - 1}`))
+                if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), code, 'ver', defolt))
+                    result = false;
 
-                if (matrix.has(`${x}:${y + 1}`))
-                    if (!HouseModel.#isAllowed(code, matrix.get(`${x}:${y + 1}`), 'ver', true))
-                        return false;
+            if (matrix.has(`${x}:${y + 1}`))
+                if (!HouseModel.#isAllowed(code, matrix.get(`${x}:${y + 1}`), 'ver', defolt))
+                    result = false;
 
-                matrix.set(`${x}:${y}`, code);
-            }
-            
-            return true;
+            matrix.set(`${x}:${y}`, code);
         }
-        else {
-            for (const [b, x, y] of cells) {
 
-                const code = b.getCode(x, y);
-
-                if (matrix.has(`${x - 1}:${y}`))
-                    if (!HouseModel.#isAllowed(matrix.get(`${x - 1}:${y}`), code, 'hor', false))
-                        return false;
-
-                if (matrix.has(`${x + 1}:${y}`))
-                    if (!HouseModel.#isAllowed(code, matrix.get(`${x + 1}:${y}`), 'hor', false))
-                        return false;
-
-                if (matrix.has(`${x}:${y - 1}`))
-                    if (!HouseModel.#isAllowed(matrix.get(`${x}:${y - 1}`), code, 'ver', false))
-                        return false;
-
-                if (matrix.has(`${x}:${y + 1}`))
-                    if (!HouseModel.#isAllowed(code, matrix.get(`${x}:${y + 1}`), 'ver', false))
-                        return false;
-
-                matrix.set(`${x}:${y}`, code);
-            }
-
-            return true;
-        }
+        return result;
     }
 
     static validatePlacementDefaults = false;
