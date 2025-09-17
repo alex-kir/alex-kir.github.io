@@ -32,6 +32,41 @@ class CompositeDisposable {
     }
 }
 
+export class ObservableSignal {
+    #subscribers = []
+    constructor() {
+    }
+
+    subscribe(func) { this.Subscribe(func); }
+    subscribeAndNotify(func) { this.SubscribeAndNotify(func); }
+    notify(...args) { this.Notify(...args); }
+
+    Subscribe(func) {
+        const wrapper = (...args) => func(...args);
+
+        const subscription = {
+            unsubscribe: () => {
+                this.#subscribers = this.#subscribers.filter(
+                    sub => sub.wrapper !== wrapper
+                );
+            }
+        };
+
+        this.#subscribers.push(wrapper);
+        return subscription;
+    }
+
+    SubscribeAndNotify(func) {
+        const subscription = this.Subscribe(func);
+        func();
+        return subscription;
+    }
+
+    Notify(...args) {
+        this.#subscribers.forEach(sub => sub(...args));
+    }
+}
+
 export class BindableValue {
     #_value;
     #_listener = [];
@@ -95,28 +130,28 @@ export class RootWidget {
 }
 
 class LayoutConstraints {
-    #_map = new Map();
+    #map = new Map();
     Add(name, value) {
-        this.#_map.set(name, value);
+        this.#map.set(name, value);
         return this;
     }
     With(name, value) {
-        this.#_map.set(name, value);
+        this.#map.set(name, value);
         return this;
     }
     Has(name) {
-        return this.#_map.has(name);
+        return this.#map.has(name);
     }
     GetOrDefault(name, defolt) {
-        if (this.#_map.has(name))
-            return this.#_map.get(name);
+        if (this.#map.has(name))
+            return this.#map.get(name);
         return defolt;
     }
     Get(name) {
-        return this.#_map.get(name);
+        return this.#map.get(name);
     }
     TryGet(name) {
-        return [this.#_map.has(name), this.#_map.get(name)];
+        return [this.#map.has(name), this.#map.get(name)];
     }
 }
 

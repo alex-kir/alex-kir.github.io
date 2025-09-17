@@ -33,36 +33,7 @@ export function arrayRemoveItem(array, item) {
     }
 }
 
-export class Signal {
-    #subscribers = []
-    constructor() {
-    }
 
-    subscribe(func) {
-        const wrapper = (...args) => func(...args);
-
-        const subscription = {
-            unsubscribe: () => {
-                this.#subscribers = this.#subscribers.filter(
-                    sub => sub.wrapper !== wrapper
-                );
-            }
-        };
-
-        this.#subscribers.push(wrapper);
-        return subscription;
-    }
-
-    subscribeAndNotify(func) {
-        const subscription = this.subscribe(func);
-        func();
-        return subscription;
-    }
-
-    notify(...args) {
-        this.#subscribers.forEach(sub => sub(...args));
-    }
-}
 
 // // Пример использования:
 // const emitter = new EventEmitter();
@@ -167,4 +138,37 @@ export class Linq {
         const result = [...array];
         return result;
     }
+}
+
+function getMediaTypeFromFilename(filename) {
+    if (filename.endsWith('.csv'))
+        return 'text/csv';
+    if (filename.endsWith('.json'))
+        return 'application/json';
+    if (filename.endsWith('.txt'))
+        return 'text/plain';
+    return 'application/json';
+}
+
+export function saveFileInDownloads(json, filename) {
+    /*
+    Create a Blob:
+    Convert the data into a Blob object. A Blob represents file-like immutable raw data.
+     The Blob constructor takes an array of data parts and an options object, where type 
+     can specify the MIME type of the file (e.g., 'text/plain', 'text/csv', 'application/json').
+    */
+    let fileType = getMediaTypeFromFilename(filename);
+    const blob = new Blob([json], { type: fileType });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = filename;
+
+    //    document.body.appendChild(a); // Optional, for compatibility
+    a.click();
+    // document.body.removeChild(a); // Optional, for cleanup
+
+    URL.revokeObjectURL(url);
 }

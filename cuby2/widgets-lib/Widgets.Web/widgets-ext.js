@@ -1,5 +1,5 @@
 
-import { ContainerWidget, CanvasWidget, TextWidget, AGesture, ATheme, BindableValue } from 'widgets/widgets-core.js'
+import { ContainerWidget, CanvasWidget, TextWidget, AGesture, ATheme, BindableValue, ObservableSignal } from './widgets-core.js'
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -322,7 +322,7 @@ export class VerticalGridWidget extends ContainerWidget {
 }
 
 
-export class VericalStackWidget extends ContainerWidget {
+export class VerticalStackWidget extends ContainerWidget {
 
     static #zeroPadding = [0, 0, 0, 0];
 
@@ -330,7 +330,7 @@ export class VericalStackWidget extends ContainerWidget {
     get Spacing() { return this.SpacingValue.Value };
     set Spacing(value) { this.SpacingValue.Value = value; }
 
-    PaddingValue = new BindableValue(VericalStackWidget.#zeroPadding);
+    PaddingValue = new BindableValue(VerticalStackWidget.#zeroPadding);
     get Padding() { return this.PaddingValue.Value };
     set Padding(value) { this.PaddingValue.Value = value; } // TODO validate value
 
@@ -338,6 +338,7 @@ export class VericalStackWidget extends ContainerWidget {
         super();
         this.SizeValue.Subscribe(this.Layout.bind(this));
         this.WidgetsValue.Subscribe(this.Layout.bind(this));
+        // TODO subscribe to children
     }
 
     Layout() {
@@ -402,7 +403,7 @@ export class ButtonWidget extends OverflowWidget {
     set TextAlignment(value) { this.#_text.TextAlignment = value; }
 
     ClickAction = null;
-    Command = null;
+    Command = new ObservableSignal();
 
     constructor() {
         super();
@@ -426,8 +427,7 @@ export class ButtonWidget extends OverflowWidget {
     OnClick() {
         if (this.ClickAction)
             this.ClickAction();
-        if (this.Command)
-            this.Command();
+        this.Command.Notify();
     }
 }
 

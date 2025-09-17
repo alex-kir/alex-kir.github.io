@@ -3,16 +3,17 @@
 import { SinglePageWindow } from 'widgets/widgets-core.js';
 import { HomePage } from './pages/HomePage.js';
 import AppSceneManager from './AppSceneManager.js';
-import AppResourceManager from './AppResourceManager.js'
+import AppResourceManager from './AppResourceManager.js';
 import RootViewModel from './models/RootViewModel.js';
 
 import './plugins/DrawPlaneScenePlugin.js';
 import './plugins/CameraControlScenePlugin.js';
 import './plugins/HouseModelEditorScenePlugin.js';
 import './plugins/FpsScenePlugin.js';
-import './plugins/HotkeysScenePlugin.js'
+import './plugins/HotkeysScenePlugin.js';
 import './plugins/SyncHouseBlocksScenePlugin.js';
-import './plugins/SyncHouseColumnsScenePlugin.js'
+import './plugins/SyncHouseColumnsScenePlugin.js';
+import './plugins/SaveHouseModelPlugin.js';
 
 export function AppMain(container) {
 

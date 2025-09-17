@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import { deg, Signal } from './utils.js';
+import { ObservableSignal } from '../widgets-lib/Widgets.Web/widgets-core.js';
+import { deg } from './utils.js';
 
 export default class AppResourceManager {
     #_fbxLoader;
     #_cache;
     #_inProgress;
 
-    requestRender = new Signal();
+    requestRender = new ObservableSignal();
 
     constructor() {
         this.#_fbxLoader = new FBXLoader();
@@ -55,7 +56,7 @@ export default class AppResourceManager {
                     });
 
                     if (list.length) {
-                        this.requestRender.notify();
+                        this.requestRender.Notify();
                     }
 
                     list.length = 0;
