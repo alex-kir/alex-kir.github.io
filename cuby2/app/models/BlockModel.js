@@ -130,6 +130,22 @@ export class BlockModel {
         }
     }
 
+    forEachCell_xz(func) {
+        for (let iByWi = 0; iByWi < this.#realWidth; iByWi++) {
+            for (let iByHe = 0; iByHe < this.#realHeight; iByHe++) {
+                const x = this.#realX + iByWi;
+                const y = this.#realY + iByHe;
+                const z = -y;
+                func(this, x, z);
+            }
+        }
+    }
+
+    getCode_xz(x, z) {
+        const y = -z;
+        return this.getCode(x, y);
+    }
+
     getCode(x, y) {
         let byDirs = [0, 0, 0, 0];
         switch (this.name) {

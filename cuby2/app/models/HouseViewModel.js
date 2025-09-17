@@ -1,15 +1,15 @@
 
-import { Signal } from '../utils.js'
 import HouseModel from './HouseModel.js'
 import { BlockDirection, BlockModel } from './BlockModel.js'
 import { CMS } from '../models/CMS.js'
+import { ObservableSignal } from '../../widgets-lib/Widgets.Web/widgets-core.js';
 
 export default class HouseViewModel {
     #houseModel = new HouseModel();
 
     activeBlockName = CMS.getEntity('key|1').id;
     activeDirection = BlockDirection.North;
-    activeToolChanged = new Signal();
+    activeToolChanged = new ObservableSignal();
 
     get houseModel() { return this.#houseModel; }
     get blocksChanged() { return this.#houseModel.blocksChanged; }

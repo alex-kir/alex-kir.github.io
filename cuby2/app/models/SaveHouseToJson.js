@@ -17,6 +17,8 @@ export class SaveHouseToJson {
 
     static toJsonString(obj) {
         const blocks = SaveHouseToJson.findBlocks(obj);
+        if (blocks.size == 0)
+            return;
 
         let minX = 10000000; // TODO
         let minY = 10000000;

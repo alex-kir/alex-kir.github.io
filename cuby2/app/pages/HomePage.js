@@ -1,8 +1,6 @@
 import { RootWidget, ContainerWidget, ScrollWidget, TextWidget } from 'widgets/widgets-core.js';
-import { OverflowWidget, VericalStackWidget, ButtonWidget, HorizontalGridWidget, VerticalGridWidget } from 'widgets/widgets-ext.js';
-import { BlockDirection } from '../models/BlockModel.js';
+import { OverflowWidget, VerticalStackWidget, ButtonWidget, HorizontalGridWidget, VerticalGridWidget } from 'widgets/widgets-ext.js';
 import { CMS } from '../models/CMS.js';
-import { SaveHouseToJson } from '../models/SaveHouseToJson.js';
 import { BorderWidget } from '../../widgets-lib/Widgets.Web/widgets-ext.js';
 import HouseModel from '../models/HouseModel.js';
 import { Linq } from '../utils.js'
@@ -25,33 +23,13 @@ export class HomePage extends RootWidget {
             const button = this.#createButtonNoBorder(titleOff, function () {
                 vm.setBlockName(id);
             });
-            vm.activeToolChanged.subscribeAndNotify(function () {
+            vm.activeToolChanged.SubscribeAndNotify(function () {
                 button.Text = vm.activeBlockName == id ? titleOn : titleOff;
             });
             button.TextAlignment = [-1, 0];
             button.Constraints.With('height', 32);
             buttons.push(button);
         }
-
-        // const header = new HorizontalGridWidget();
-        // header.Spacing = 8;
-        // header.Constraints.With('height', 60);
-        // header.Widgets = buttons;
-
-        // ← → ↔ ↑ ↓ , ↕
-        //'🡅' '🡆' '🡇' '🡄'
-        // const footer1 = this.#createButton('↑', this.#commandForDirection(BlockDirection.North));
-        // const footer2 = this.#createButton('→', this.#commandForDirection(BlockDirection.East));
-        // const footer3 = this.#createButton('↓', this.#commandForDirection(BlockDirection.South));
-        // const footer4 = this.#createButton('←', this.#commandForDirection(BlockDirection.West));
-
-        const download = this.#createButton('Download JSON', this.#onDownloading.bind(this));
-        download.Constraints.With('height', 32);
-
-        // const footer = new HorizontalGridWidget();
-        // footer.Spacing = 10;
-        // footer.Constraints.With('height', 60);
-        // footer.Widgets = [footer1, footer2, footer3, footer4];
 
         const view3dHost = new ContainerWidget();
 
@@ -63,9 +41,6 @@ export class HomePage extends RootWidget {
 
         const host2 = new OverflowWidget();
         host2.Widgets = [view3dHost, imageHost];
-
-        // const content = new VerticalGridWidget();
-        // content.Widgets = [host2, footer];
 
         const step1 = new TextWidget();
         step1.Text = '⏷ Step 1. Place modules';
@@ -127,10 +102,10 @@ export class HomePage extends RootWidget {
             .Select(it => it.at(0))
             .ToList();
 
-        const stack = new VericalStackWidget();
+        const stack = new VerticalStackWidget();
         stack.Padding = [8, 8, 8, 8];
         stack.Spacing = 4;
-        stack.Widgets = [step1, ...buttons, space, rotate, stepRules, validationMode, printUndefined, step2, download, step3, ...pluginWidgets];
+        stack.Widgets = [step1, ...buttons, space, rotate, stepRules, validationMode, printUndefined, step3, ...pluginWidgets];
 
         const scroll = new ScrollWidget();
         scroll.Constraints.With('width', 300);
@@ -177,39 +152,13 @@ export class HomePage extends RootWidget {
             navigator.clipboard.writeText('no new rules found');
     }
 
-    #onDownloading() {
-
-        const json = SaveHouseToJson.toJsonString(this.#rootViewModel);
-
-        /*
-        Create a Blob:
-        Convert the data into a Blob object. A Blob represents file-like immutable raw data.
-         The Blob constructor takes an array of data parts and an options object, where type 
-         can specify the MIME type of the file (e.g., 'text/plain', 'text/csv', 'application/json').
-        */
-
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-
-        a.href = url;
-        a.download = 'house.json';
-
-        //    document.body.appendChild(a); // Optional, for compatibility
-        a.click();
-        // document.body.removeChild(a); // Optional, for cleanup
-
-        URL.revokeObjectURL(url);
-    }
-
     #createButtonNoBorder(title, command) {
         const button = new ButtonWidget();
         // button.Radius = 6;
         // button.StrokeColor = '#ccc';
         // button.StrokeThickness = 1;
         button.Text = title;
-        button.Command = command;
+        button.Command.Subscribe(command);
         return button;
     }
 
@@ -219,17 +168,7 @@ export class HomePage extends RootWidget {
         button.StrokeColor = '#ccc';
         button.StrokeThickness = 1;
         button.Text = title;
-        button.Command = command;
+        button.Command.Subscribe(command);
         return button;
     }
-
-    // #commandForTool(name) {
-    //     const vm = this.#rootViewModel.houseViewModel;
-    //     return function () { vm.setBlockName(name); };
-    // }
-
-    // #commandForDirection(name) {
-    //     const vm = this.#rootViewModel.houseViewModel;
-    //     return function () { vm.setDirection(name); };
-    // }
 }

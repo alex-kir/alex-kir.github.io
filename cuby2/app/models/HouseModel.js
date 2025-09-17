@@ -1,4 +1,4 @@
-import { Signal } from '../utils.js'
+import { ObservableSignal } from '../../widgets-lib/Widgets.Web/widgets-core.js';
 import { BlockModel } from './BlockModel.js';
 import { CMS } from './CMS.js';
 
@@ -29,7 +29,7 @@ export default class HouseModel {
     }
 
     get blocks() { return this.#blocks; }
-    blocksChanged = new Signal();
+    blocksChanged = new ObservableSignal();
 
     canAdd(block) {
         if (block instanceof BlockModel) {
@@ -48,7 +48,7 @@ export default class HouseModel {
             return false;
 
         this.#blocks.push(block);
-        this.blocksChanged.notify();
+        this.blocksChanged.Notify();
         //console.log('house block added:', block);
         return true;
     }
@@ -59,7 +59,7 @@ export default class HouseModel {
             return;
 
         this.#blocks.splice(index, 1);
-        this.blocksChanged.notify();
+        this.blocksChanged.Notify();
         //console.log('house block removed:', index, block);
         return true;
     }
