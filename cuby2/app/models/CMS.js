@@ -123,6 +123,23 @@ export class CMS {
         data.set('rules|ver|529|529', allowed);
 
 
+        data.set('rules|hor|202|523', allowed);
+        data.set('rules|hor|203|303', allowed);
+        data.set('rules|hor|204|525', allowed);
+        data.set('rules|hor|205|305', allowed);
+        data.set('rules|hor|303|203', allowed);
+        data.set('rules|hor|303|523', allowed);
+        data.set('rules|hor|523|202', allowed);
+        data.set('rules|hor|523|303', allowed);
+        data.set('rules|hor|525|204', allowed);
+        data.set('rules|hor|525|305', allowed);
+        data.set('rules|ver|205|303', allowed);
+        data.set('rules|ver|205|305', allowed);
+        data.set('rules|ver|303|203', allowed);
+        data.set('rules|ver|305|203', allowed);
+        data.set('rules|ver|305|523', allowed);
+
+        
         // data.set('rules|hor|303|302', denied);
     }
 
