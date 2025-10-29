@@ -389,12 +389,12 @@ Objects:  {
 	Video: 1999161323456, "Video::Panel_Normal_1", "Clip" {
 		Type: "Clip"
 		Properties70:  {
-			P: "Path", "KString", "XRefUrl", "", "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Bump.png"
-			P: "RelPath", "KString", "XRefUrl", "", "Panel_Bump.png"
+			P: "Path", "KString", "XRefUrl", "", "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Normal.png"
+			P: "RelPath", "KString", "XRefUrl", "", "Panel_Normal.png"
 		}
 		UseMipMap: 0
-		Filename: "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Bump.png"
-		RelativeFilename: "Panel_Bump.png"
+		Filename: "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Normal.png"
+		RelativeFilename: "Panel_Normal.png"
 	}
 	Texture: 1999186685024, "Texture::base_color_texture", "" {
 		Type: "TextureVideoClip"
@@ -440,8 +440,8 @@ Objects:  {
 			P: "UseMaterial", "bool", "", "",1
 		}
 		Media: "Video::Panel_Normal_1"
-		FileName: "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Bump.png"
-		RelativeFilename: "Panel_Bump.png"
+		FileName: "C:/Users/a.mishchanka/Desktop/Typical_panel/Panel_Normal.png"
+		RelativeFilename: "Panel_Normal.png"
 		ModelUVTranslation: 0,0
 		ModelUVScaling: 1,1
 		Texture_Alpha_Source: "None"
