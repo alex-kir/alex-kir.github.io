@@ -8,11 +8,11 @@ FBXHeaderExtension:  {
 		Version: 1000
 		Year: 2025
 		Month: 11
-		Day: 4
-		Hour: 9
-		Minute: 59
-		Second: 17
-		Millisecond: 801
+		Day: 11
+		Hour: 14
+		Minute: 8
+		Second: 5
+		Millisecond: 845
 	}
 	Creator: "FBX SDK/FBX Plugins version 2020.3.6"
 	SceneInfo: "SceneInfo::GlobalInfo", "UserData" {
@@ -28,20 +28,20 @@ FBXHeaderExtension:  {
 			Comment: ""
 		}
 		Properties70:  {
-			P: "DocumentUrl", "KString", "Url", "", "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\A13.1.1 H.WALL. PNL 5551.fbx"
-			P: "SrcDocumentUrl", "KString", "Url", "", "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\A13.1.1 H.WALL. PNL 5551.fbx"
+			P: "DocumentUrl", "KString", "Url", "", "C:\Users\a.mishchanka\Desktop\New_Stenovie_panel_10_11_2025\material\A13.1.1 H.WALL. PNL 5551"
+			P: "SrcDocumentUrl", "KString", "Url", "", "C:\Users\a.mishchanka\Desktop\New_Stenovie_panel_10_11_2025\material\A13.1.1 H.WALL. PNL 5551"
 			P: "Original", "Compound", "", ""
 			P: "Original|ApplicationVendor", "KString", "", "", "Autodesk"
 			P: "Original|ApplicationName", "KString", "", "", "Maya"
 			P: "Original|ApplicationVersion", "KString", "", "", "2025"
-			P: "Original|DateTime_GMT", "DateTime", "", "", "04/11/2025 06:59:17.800"
-			P: "Original|FileName", "KString", "", "", "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\A13.1.1 H.WALL. PNL 5551.fbx"
+			P: "Original|DateTime_GMT", "DateTime", "", "", "11/11/2025 11:08:05.844"
+			P: "Original|FileName", "KString", "", "", "C:\Users\a.mishchanka\Desktop\New_Stenovie_panel_10_11_2025\material\A13.1.1 H.WALL. PNL 5551"
 			P: "LastSaved", "Compound", "", ""
 			P: "LastSaved|ApplicationVendor", "KString", "", "", "Autodesk"
 			P: "LastSaved|ApplicationName", "KString", "", "", "Maya"
 			P: "LastSaved|ApplicationVersion", "KString", "", "", "2025"
-			P: "LastSaved|DateTime_GMT", "DateTime", "", "", "04/11/2025 06:59:17.800"
-			P: "Original|ApplicationActiveProject", "KString", "", "", "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV"
+			P: "LastSaved|DateTime_GMT", "DateTime", "", "", "11/11/2025 11:08:05.844"
+			P: "Original|ApplicationActiveProject", "KString", "", "", "C:\Users\a.mishchanka\Desktop\New_Stenovie_panel_10_11_2025\material"
 		}
 	}
 }
@@ -76,7 +76,7 @@ GlobalSettings:  {
 
 Documents:  {
 	Count: 1
-	Document: 2844528440752, "", "Scene" {
+	Document: 1552686946016, "", "Scene" {
 		Properties70:  {
 			P: "SourceObject", "object", "", ""
 			P: "ActiveAnimStackName", "KString", "", "", "Take 001"
@@ -286,19 +286,19 @@ Definitions:  {
 ;------------------------------------------------------------------
 
 Objects:  {
-	NodeAttribute: 2845305288048, "NodeAttribute::", "Null" {
+	NodeAttribute: 1552721139040, "NodeAttribute::", "Null" {
 		Properties70:  {
 			P: "Look", "enum", "", "",0
 		}
 		TypeFlags: "Null"
 	}
-	NodeAttribute: 2845305283120, "NodeAttribute::", "Null" {
+	NodeAttribute: 1552721138336, "NodeAttribute::", "Null" {
 		Properties70:  {
 			P: "Look", "enum", "", "",0
 		}
 		TypeFlags: "Null"
 	}
-	Geometry: 2845213625504, "Geometry::", "Mesh" {
+	Geometry: 1552310965248, "Geometry::", "Mesh" {
 		Vertices: *108 {
 			a: 194,-2.96656187816654e-18,500,50,-2.96656187816654e-18,500,50,-2.96656187816654e-18,-500,200,-2.96656187816654e-18,-500,200,-2.96656187816654e-18,495,194,-2.96656187816654e-18,495,200,-2.96656187816654e-18,495,200,5551.4150390625,495,194,5549.8076171875,495,194,-2.96656187816654e-18,495,194,-2.96656187816654e-18,500,194,5549.8076171875,500,50,5511.22265625,500,50,-2.96656187816654e-18,500,50,-2.96656187816654e-18,500,50,5511.22265625,500,50,5511.22265625,-500,50,-2.96656187816654e-18,-500,200,-2.96656187816654e-18,-500,200,5551.4150390625,-500,200,5551.4150390625,495,200,-2.96656187816654e-18,495,50,-2.96656187816654e-18,-500,50,5511.22265625,-500,200,5551.4150390625,-500,200,-2.96656187816654e-18,-500,194,-2.96656187816654e-18,495,194,5549.8076171875,495,194,5549.8076171875,500,194,-2.96656187816654e-18,500,50,5511.22265625,500,194,5549.8076171875,500,194,5549.8076171875,495,200,5551.4150390625,495,200,5551.4150390625,-500,50,5511.22265625,-500
 		} 
@@ -355,7 +355,7 @@ Objects:  {
 			}
 		}
 	}
-	Model: 2842810131664, "Model::Model", "Null" {
+	Model: 1549081877968, "Model::Model", "Null" {
 		Version: 232
 		Properties70:  {
 			P: "RotationActive", "bool", "", "",1
@@ -366,7 +366,7 @@ Objects:  {
 		Shading: Y
 		Culling: "CullingOff"
 	}
-	Model: 2842810127024, "Model::________", "Null" {
+	Model: 1549081295232, "Model::________", "Null" {
 		Version: 232
 		Properties70:  {
 			P: "RotationActive", "bool", "", "",1
@@ -377,7 +377,7 @@ Objects:  {
 		Shading: Y
 		Culling: "CullingOff"
 	}
-	Model: 2842810115424, "Model::Mesh1", "Mesh" {
+	Model: 1549081297552, "Model::Mesh1", "Mesh" {
 		Version: 232
 		Properties70:  {
 			P: "RotationActive", "bool", "", "",1
@@ -389,7 +389,7 @@ Objects:  {
 		Shading: T
 		Culling: "CullingOff"
 	}
-	Material: 2844983247744, "Material::M_STENI", "" {
+	Material: 1552353156016, "Material::M_STENI", "" {
 		Version: 102
 		ShadingModel: "phong"
 		MultiLayer: 0
@@ -409,17 +409,17 @@ Objects:  {
 			P: "Reflectivity", "double", "Number", "",0
 		}
 	}
-	Video: 2844983240064, "Video::Panel_BaseColor_1", "Clip" {
+	Video: 1552353159856, "Video::Panel_BaseColor_1", "Clip" {
 		Type: "Clip"
 		Properties70:  {
-			P: "Path", "KString", "XRefUrl", "", "C:/Users/a.mishchanka/Desktop/Panel/Sten/UV/Panel_BaseColor.png"
-			P: "RelPath", "KString", "XRefUrl", "", "Panel_BaseColor.png"
+			P: "Path", "KString", "XRefUrl", "", "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\Panel_BaseColor.png"
+			P: "RelPath", "KString", "XRefUrl", "", "..\..\Panel\Sten\UV\Panel_BaseColor.png"
 		}
 		UseMipMap: 0
-		Filename: "C:/Users/a.mishchanka/Desktop/Panel/Sten/UV/Panel_BaseColor.png"
-		RelativeFilename: "Panel_BaseColor.png"
+		Filename: "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\Panel_BaseColor.png"
+		RelativeFilename: "..\..\Panel\Sten\UV\Panel_BaseColor.png"
 	}
-	Texture: 2844983231424, "Texture::Panel_BaseColor_1", "" {
+	Texture: 1552353155056, "Texture::Panel_BaseColor_1", "" {
 		Type: "TextureVideoClip"
 		Version: 202
 		TextureName: "Texture::Panel_BaseColor_1"
@@ -429,8 +429,8 @@ Objects:  {
 			P: "UseMaterial", "bool", "", "",1
 		}
 		Media: "Video::Panel_BaseColor_1"
-		FileName: "C:/Users/a.mishchanka/Desktop/Panel/Sten/UV/Panel_BaseColor.png"
-		RelativeFilename: "Panel_BaseColor.png"
+		FileName: "C:\Users\a.mishchanka\Desktop\Panel\Sten\UV\Panel_BaseColor.png"
+		RelativeFilename: "..\..\Panel\Sten\UV\Panel_BaseColor.png"
 		ModelUVTranslation: 0,0
 		ModelUVScaling: 1,1
 		Texture_Alpha_Source: "None"
@@ -444,29 +444,29 @@ Objects:  {
 Connections:  {
 	
 	;Model::Model, Model::RootNode
-	C: "OO",2842810131664,0
+	C: "OO",1549081877968,0
 	
 	;NodeAttribute::, Model::Model
-	C: "OO",2845305288048,2842810131664
+	C: "OO",1552721139040,1549081877968
 	
 	;Model::________, Model::Model
-	C: "OO",2842810127024,2842810131664
+	C: "OO",1549081295232,1549081877968
 	
 	;NodeAttribute::, Model::________
-	C: "OO",2845305283120,2842810127024
+	C: "OO",1552721138336,1549081295232
 	
 	;Model::Mesh1, Model::________
-	C: "OO",2842810115424,2842810127024
+	C: "OO",1549081297552,1549081295232
 	
 	;Texture::Panel_BaseColor_1, Material::M_STENI
-	C: "OP",2844983231424,2844983247744, "DiffuseColor"
+	C: "OP",1552353155056,1552353156016, "DiffuseColor"
 	
 	;Video::Panel_BaseColor_1, Texture::Panel_BaseColor_1
-	C: "OO",2844983240064,2844983231424
+	C: "OO",1552353159856,1552353155056
 	
 	;Geometry::, Model::Mesh1
-	C: "OO",2845213625504,2842810115424
+	C: "OO",1552310965248,1549081297552
 	
 	;Material::M_STENI, Model::Mesh1
-	C: "OO",2844983247744,2842810115424
+	C: "OO",1552353156016,1549081297552
 }
