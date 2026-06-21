@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Три в ряд</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 15px;
+            color: #e94560;
+            font-size: 28px;
+            text-shadow: 0 0 12px rgba(233,69,96,0.6);
+        }
+
+        .settings {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            background: #16213e;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .settings label {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .settings input[type="number"] {
+            width: 56px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #e94560;
+            background: #0f3460;
+            color: #eee;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 6px 16px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover  { background: #c73652; transform: scale(1.05); }
+        button:active { transform: scale(0.97); }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 14px;
+            font-size: 18px;
+        }
+        .stats span { color: #f5a623; font-weight: bold; font-size: 22px; }
+
+        #board-clip {
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(233,69,96,0.2);
+        }
+
+        #board {
+            display: grid;
+            gap: 3px;
+            background: #16213e;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f3460;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            line-height: 1;
+            transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s;
+        }
+        .cell:hover {
+            background: #1a4a80;
+            transform: scale(1.08);
+            box-shadow: 0 0 8px rgba(245,166,35,0.4);
+        }
+        .cell.selected {
+            background: #e94560 !important;
+            transform: scale(1.13) !important;
+            box-shadow: 0 0 14px rgba(233,69,96,0.9) !important;
+        }
+        .cell.removing {
+            animation: pop 0.36s ease forwards;
+            pointer-events: none;
+        }
+        @keyframes pop {
+            0%   { transform: scale(1);   opacity: 1; background: #f5a623; }
+            40%  { transform: scale(1.35); opacity: 0.8; }
+            100% { transform: scale(0);   opacity: 0; }
+        }
+
+        #message {
+            margin-top: 12px;
+            min-height: 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #f5a623;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🎮 Три в ряд</h1>
+
+<div class="settings">
+    <label>Размер поля:
+        <input type="number" id="sizeInput" value="10" min="4" max="20">
+    </label>
+    <label>Видов эмодзи:
+        <input type="number" id="colorsInput" value="4" min="3" max="10">
+    </label>
+    <button onclick="newGame()">▶ Новая игра</button>
+</div>
+
+<div class="stats">
+    <div>Очки: <span id="scoreVal">0</span></div>
+    <div>Ходов: <span id="movesVal">0</span></div>
+</div>
+
+<div id="board-clip"><div id="board"></div></div>
+<div id="message"></div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ALL_EMOJIS = ['🍎','🍊','🍋','🍇','🍓','🍑','🍒','🍉','🍍','🥝'];
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+let gridSize, numColors, board, selected, score, moves, isAnimating, cellSize;
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+
+function newGame() {
+    gridSize  = clamp(parseInt(document.getElementById('sizeInput').value)  || 10, 4, 20);
+    numColors = clamp(parseInt(document.getElementById('colorsInput').value) || 4,  3, 10);
+    document.getElementById('sizeInput').value   = gridSize;
+    document.getElementById('colorsInput').value = numColors;
+
+    score = 0; moves = 0;
+    selected = null; isAnimating = false;
+    cellSize = Math.max(30, Math.min(55, Math.floor(550 / gridSize)));
+
+    setMsg('');
+    updateStats();
+    buildBoard();
+    renderBoard();
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function range(n)          { return Array.from({length: n}, (_, i) => i); }
+
+// ─── Board construction ──────────────────────────────────────────────────────
+
+function buildBoard() {
+    board = [];
+    for (let r = 0; r < gridSize; r++) {
+        board[r] = [];
+        for (let c = 0; c < gridSize; c++) {
+            board[r][c] = safeRandom(r, c);
+        }
+    }
+}
+
+// Pick a random type that won't immediately form a match of 3.
+function safeRandom(r, c) {
+    let pool = range(numColors);
+    if (c >= 2 && board[r][c-1] === board[r][c-2])
+        pool = pool.filter(x => x !== board[r][c-1]);
+    if (r >= 2 && board[r-1][c] === board[r-2][c])
+        pool = pool.filter(x => x !== board[r-1][c]);
+    if (!pool.length) pool = range(numColors);
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ─── Rendering ───────────────────────────────────────────────────────────────
+
+function renderBoard() {
+    const el = document.getElementById('board');
+    el.style.gridTemplateColumns = `repeat(${gridSize}, ${cellSize}px)`;
+    el.innerHTML = '';
+    for (let r = 0; r < gridSize; r++)
+        for (let c = 0; c < gridSize; c++)
+            el.appendChild(makeCell(r, c));
+}
+
+function makeCell(r, c) {
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.dataset.r = r; div.dataset.c = c;
+    div.style.cssText = `width:${cellSize}px;height:${cellSize}px;font-size:${Math.round(cellSize*0.56)}px`;
+    div.textContent = ALL_EMOJIS[board[r][c]];
+    div.addEventListener('click', () => handleClick(r, c));
+    return div;
+}
+
+function getCell(r, c) {
+    return document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+}
+
+function updateStats() {
+    document.getElementById('scoreVal').textContent = score;
+    document.getElementById('movesVal').textContent = moves;
+}
+
+function setMsg(text) { document.getElementById('message').textContent = text; }
+
+// ─── Input ───────────────────────────────────────────────────────────────────
+
+function handleClick(r, c) {
+    if (isAnimating) return;
+
+    if (!selected) {
+        selected = {r, c};
+        getCell(r, c).classList.add('selected');
+        return;
+    }
+
+    const {r: sr, c: sc} = selected;
+    getCell(sr, sc)?.classList.remove('selected');
+
+    if (sr === r && sc === c) { selected = null; return; }
+
+    if (isAdj(sr, sc, r, c)) {
+        selected = null;
+        doSwap(sr, sc, r, c);
+    } else {
+        selected = {r, c};
+        getCell(r, c).classList.add('selected');
+    }
+}
+
+function isAdj(r1, c1, r2, c2) { return Math.abs(r1-r2) + Math.abs(c1-c2) === 1; }
+
+// ─── Swap ────────────────────────────────────────────────────────────────────
+
+async function doSwap(r1, c1, r2, c2) {
+    isAnimating = true;
+    swapArr(r1, c1, r2, c2);
+    refreshCell(r1, c1); refreshCell(r2, c2);
+
+    if (!findMatches().length) {
+        // No match — revert
+        await sleep(180);
+        swapArr(r1, c1, r2, c2);
+        refreshCell(r1, c1); refreshCell(r2, c2);
+        flashRed(r1, c1); flashRed(r2, c2);
+        setMsg('Нет совпадений — попробуй ещё раз');
+        setTimeout(() => setMsg(''), 1600);
+    } else {
+        moves++;
+        updateStats();
+        setMsg('');
+        await cascade();
+    }
+
+    isAnimating = false;
+}
+
+function swapArr(r1, c1, r2, c2) {
+    [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+}
+
+function refreshCell(r, c) {
+    const el = getCell(r, c);
+    if (el) el.textContent = ALL_EMOJIS[board[r][c]];
+}
+
+function flashRed(r, c) {
+    const el = getCell(r, c);
+    if (!el) return;
+    el.style.background = '#c73652';
+    setTimeout(() => { el.style.background = ''; }, 320);
+}
+
+// ─── Match / cascade ─────────────────────────────────────────────────────────
+
+async function cascade() {
+    let combo = 0;
+    while (true) {
+        const matches = findMatches();
+        if (!matches.length) break;
+        combo++;
+
+        // Animate removal
+        for (const [r, c] of matches) getCell(r, c)?.classList.add('removing');
+
+        const pts = matches.length * 10 * combo;
+        score += pts;
+        updateStats();
+        if (combo > 1) setMsg(`Комбо ×${combo}! +${pts} очков`);
+
+        await sleep(380);
+
+        for (const [r, c] of matches) board[r][c] = -1;
+        const fell     = gravity();
+        const newCells = fill();
+        renderBoard();
+        animateFall(fell, newCells);
+
+        await sleep(430); // wait for fall animation
+    }
+    if (combo > 1) setTimeout(() => setMsg(''), 1400);
+}
+
+// ─── Match detection ─────────────────────────────────────────────────────────
+
+function findMatches() {
+    const set = new Set();
+
+    // Horizontal
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c <= gridSize - 3; c++) {
+            const v = board[r][c];
+            if (v < 0 || v !== board[r][c+1] || v !== board[r][c+2]) continue;
+            let e = c + 2;
+            while (e + 1 < gridSize && board[r][e+1] === v) e++;
+            for (let k = c; k <= e; k++) set.add(k32(r, k));
+        }
+    }
+
+    // Vertical
+    for (let c = 0; c < gridSize; c++) {
+        for (let r = 0; r <= gridSize - 3; r++) {
+            const v = board[r][c];
+            if (v < 0 || v !== board[r+1][c] || v !== board[r+2][c]) continue;
+            let e = r + 2;
+            while (e + 1 < gridSize && board[e+1][c] === v) e++;
+            for (let k = r; k <= e; k++) set.add(k32(k, c));
+        }
+    }
+
+    return [...set].map(n => [n >> 8, n & 0xff]);
+}
+
+// Compact coordinate key: pack (r,c) into one integer (works for grid ≤ 255).
+const k32 = (r, c) => (r << 8) | c;
+
+// ─── Gravity & fill ──────────────────────────────────────────────────────────
+
+// Returns {`r,c`: rowsFallen} for every piece that moved.
+function gravity() {
+    const fell = {};
+    for (let c = 0; c < gridSize; c++) {
+        let w = gridSize - 1;
+        for (let r = gridSize - 1; r >= 0; r--) {
+            if (board[r][c] >= 0) {
+                if (w !== r) fell[`${w},${c}`] = w - r;
+                board[w][c] = board[r][c];
+                if (w !== r) board[r][c] = -1;
+                w--;
+            }
+        }
+        while (w >= 0) board[w--][c] = -1;
+    }
+    return fell;
+}
+
+// Returns [[r,c], ...] of newly spawned cells.
+function fill() {
+    const newCells = [];
+    for (let r = 0; r < gridSize; r++)
+        for (let c = 0; c < gridSize; c++)
+            if (board[r][c] < 0) {
+                board[r][c] = Math.floor(Math.random() * numColors);
+                newCells.push([r, c]);
+            }
+    return newCells;
+}
+
+// ─── Fall animation ──────────────────────────────────────────────────────────
+
+function animateFall(fell, newCells) {
+    const step = cellSize + 3; // cell px + gap px
+
+    function drop(el, rows) {
+        if (!el) return;
+        el.style.transition = 'none';
+        el.style.transform  = `translateY(${-rows * step}px)`;
+        void el.offsetWidth; // force reflow — locks in the starting position
+        el.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
+        el.style.transform  = 'translateY(0)';
+        el.addEventListener('transitionend', () => {
+            el.style.transition = '';
+            el.style.transform  = '';
+        }, { once: true });
+    }
+
+    // Existing pieces that fell
+    for (const [key, rows] of Object.entries(fell)) {
+        const [r, c] = key.split(',').map(Number);
+        drop(getCell(r, c), rows);
+    }
+
+    // New pieces: piece at row r appears r+1 cells above its final slot
+    for (const [r, c] of newCells) {
+        drop(getCell(r, c), r + 1);
+    }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// ─── Start ───────────────────────────────────────────────────────────────────
+
+newGame();
+</script>
+</body>
+</html>
