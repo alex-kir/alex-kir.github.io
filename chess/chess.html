@@ -1,0 +1,457 @@
+<html>
+    <head>
+        <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+        <meta content="utf-8" http-equiv="encoding">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <!-- https://github.com/nmrugg/stockfish.js -->
+        <!-- https://gist.github.com/aliostad/f4470274f39d29b788c1b09519e67372 -->
+        <!-- https://ru.wikipedia.org/wiki/%D0%9D%D0%BE%D1%82%D0%B0%D1%86%D0%B8%D1%8F_%D0%A4%D0%BE%D1%80%D1%81%D0%B0%D0%B9%D1%82%D0%B0_%E2%80%94_%D0%AD%D0%B4%D0%B2%D0%B0%D1%80%D0%B4%D1%81%D0%B0 -->
+        
+        <!-- <script src="https://www.chess.com/bundles/app/js/engine/stockfish-single.830cf9cc.js"></script> -->
+        <!-- <script src="https://www.chess.com/bundles/app/js/engine/stockfish-single.830cf9cc.js#/bundles/app/js/engine/stockfish-single.8ffa2b70.wasm"></script> -->
+       
+        
+    </head>
+    <style>
+        body { background-color: #DAA520; font-family: Arial, Helvetica, sans-serif; }
+        div { background-color-: #00ff0020; margin: 0; position: relative; }
+        body>div { width: 100%; height: 100%; }
+        div.verticalstack { display: flex; flex-direction: column; }
+        div.horizontalstack { display: flex; flex-direction: row; }
+        div.star { flex-grow: 1; }
+
+        div.button { background-color: #5ba880; border-radius: 5px;
+            padding: 5px 10px; margin:3px; width: auto; text-align: center; font-size: 20px;
+            -webkit-user-select: none;}
+        div.label {height: auto; margin:auto;}
+
+        .cell { width: 40px; height: 40px; position: absolute;}
+        .cell.active { border-color: #000; border-width: 2px; margin:-2px; border-style: dashed;}
+        .cell>span#info1 { font-size: 6px; color: #00000080; position: absolute;}
+        .cell>span#info2 { font-size: 8px; font-weight: 700; color: #000000c0; position: absolute; right: 2; bottom: 2;}
+        .cell>span#fig { font-size: 27px; color: #000000cc;
+            position: absolute; text-align: center; vertical-align: middle; width: 40px; line-height: 40px; }
+        
+        /* ♔” (U+2654) */
+        .wk:after {content: "\002654";}
+        .wq:after {content: "\002655";}
+        .wr:after {content: "\002656";}
+        .wb:after {content: "\002657";}
+        .wn:after {content: "\002658";}
+        .wp:after {content: "\002659";}
+
+        .bk:after {content: "\00265A";}
+        .bq:after {content: "\00265B";}
+        .br:after {content: "\00265C";}
+        .bb:after {content: "\00265D";}
+        .bn:after {content: "\00265E";}
+        .bp:after {content: "\00265F";}
+
+        .black { background-color: #00000040;}
+        .white { background-color: #ffffff40;}
+        #board { width: 320px; height: 320px; }
+        #miniboard { width: 240px; height: 80px; }
+        
+    </style>
+
+    <body>
+        <div class="verticalstack">
+            <div class="star"></div>
+            <div class="horizontalstack">
+                <div class="star"></div>
+                <div id="miniboard"></div>
+                <div class="star"></div>
+            </div>
+            <div class="horizontalstack">
+                <div class="star"></div>
+                <div class="button" id='setStartPosition'>START POS.</div>
+                <div class="button" id='setEmptyPosition'>EMPTY POS.</div>
+                <div class="star"></div>
+            </div>
+            <div class="horizontalstack">
+                <div class="star"></div>
+                <div id="board"></div>
+                <div class="star"></div>
+            </div>
+
+            <div class="horizontalstack">
+                <div class="star"></div>
+                <div class="button" id='goWhite'>WHITE</div>
+                <div class="button" id='goBlack'>BLACK</div>
+                <div class="button" id='stopCompute'>STOP</div>
+                <div class="button" id='depthMinus'>-</div>
+                <div class='label' id='depthValue'>10</div>
+                <div class="button" id='depthPlus'>+</div>
+                <div class="star"></div>
+            </div>
+            <div class="horizontalstack">
+                <div class="star"></div>
+                <div class="button" id='playBestMove'>Play best move</div>
+                <div class="star"></div>
+            </div>
+            <div class="star">
+                <p id="log1"></p>
+                <p id="log2"></p>
+                <p id="log3"></p>
+            </div>
+        </div>
+    </body>
+
+    <script src="stockfish.asm.js"></script>
+    <script>
+
+        const log1 = document.getElementById('log1');
+        const log2 = document.getElementById('log2');
+        const log3 = document.getElementById('log3');
+        var logIndex = 1;
+        function myLog(s) {
+            log1.innerText = log2.innerText;
+            log2.innerText = log3.innerText;
+            log3.innerText = `${logIndex}. ${s}`;
+            logIndex++;
+        }
+
+        try {
+
+        const LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const FIGURE_NAMES = ['k', 'q', 'r', 'b', 'n', 'p'];
+        const FEN_MAP = {
+            wk: 'K', wq: 'Q', wr: 'R', wb: 'B', wn: 'N', wp: 'P',
+            bk: 'k', bq: 'q', br: 'r', bb: 'b', bn: 'n', bp: 'p',
+            '': '1'
+        };
+        const IDS = initIds();
+        const figureNodesMap = new Map();
+
+        var lastBestMove = '';
+
+        var stockfish = STOCKFISH();
+
+        const movesMap = new Map();
+
+        function engineCommand(c) {
+            myLog("[user] " + c);
+            stockfish.postMessage(c);
+        }
+
+        stockfish.onmessage = function(event) {
+            const str = (event.data ? event.data : event);
+            const ss = str.split(' ');
+            function get(name, num) {
+                const i = ss.indexOf(name);
+                if (i >= 0) {
+                    return ss[i + num];
+                }
+                return null;
+            }
+
+            if (ss[0] == 'info') {
+                const score = get('score', 2);
+                const scoreType = get('score', 1); // 'mate', 'cp'
+                const move = get('pv', 1);
+                const scoreValue = `${score}${scoreType.replace('ate','').replace('cp', '')}`;
+                movesMap.set(move, scoreValue);
+                myLog(`[parse] depth:${get('depth', 1)}   ${move}:${movesMap.get(move)}`);
+            } else if (ss[0] == 'bestmove') {
+                updateBoard();
+                lastBestMove = get('bestmove', 1);
+                myLog(`[stockfish] ${str}`);
+            } else {
+                myLog(`[stockfish] ${str}`);
+            }
+        };
+
+        function initIds() {
+            const ids = [];
+            for (var i = 0; i < 8; i++) {
+                for (var j = 1; j <= 8; j++) {
+                    ids.push(`${LETTERS[i]}${j}`);
+                }
+            }
+            return ids;
+        }
+
+        function betterMove(s1, s2) {
+            if (!s1) {
+                return s2;
+            }
+            if (!s2) {
+                return s1;
+            }
+
+            const result = (+s1.replace('m', '0000')) > (+s2.replace('m', '0000')) ? s1 : s2;
+            return result;
+        }
+
+        function getCellInfo2(id, value) {
+            return document.getElementById(id).querySelector('#info2').innerText;
+        }
+
+        function setCellInfo2(id, value) {
+            document.getElementById(id).querySelector('#info2').innerText = value;
+        }
+
+        function updateBoard() {
+
+            for (const id of IDS) {
+                setCellInfo2(id, '');
+            }
+
+            const actives = document.querySelectorAll('.cell.active');
+
+            if (actives.length > 0) {
+                const activeCell = actives[0];
+                const activeId = activeCell.id;
+
+                movesMap.forEach((v, k) => {
+                    if (k.slice(0, 2) == activeId) {
+                        const endId = k.slice(2, 4);
+                        setCellInfo2(endId, v);
+                    }
+                });
+
+            } else {
+
+                movesMap.forEach((v, k) => {
+                    const startId = k.slice(0, 2);
+                    setCellInfo2(startId, betterMove(getCellInfo2(startId), v));
+                });
+            }
+        }
+
+        function move(p1, p2) {
+            if (p2) {
+                const fig = document.querySelector(`#${p2}`).querySelector('#fig');
+                if (isDigit(p1[1])) {
+                    const figNode1 = document.querySelector(`#${p1}`).querySelector('#fig');
+                    fig.className = figNode1.className;
+                    figNode1.className = '';
+                } else {
+                    fig.className = p1;
+                }
+                return;
+            }
+
+            if (Array.isArray(p1)) {
+                for (const a of p1) {
+                    move(a[0], a[1]);
+                }
+            }
+        }
+
+        function isDigit(c) {
+            return (c >= '0' && c <= '9');
+         }
+
+        function isMoveable(cell) {
+            return isDigit(cell.id[1]);
+        }
+
+        function onCellClick(e) {
+            const curr = this;// e.target;
+
+            if (curr.classList.contains('active')) {
+                curr.classList.remove('active');
+                updateBoard();
+                return;
+            }
+
+            const others = document.querySelectorAll('.cell.active');
+            if (others.length > 0) {
+                const currFig = curr.querySelector('#fig');
+                const prevFig = others[0].querySelector('#fig');
+
+                if (isMoveable(curr))
+                    currFig.className = prevFig.className;
+                if (isMoveable(others[0]))
+                    prevFig.className = '';
+
+                for (var o of others) {
+                    o.classList.remove('active');
+                }
+                stopCompute();
+                movesMap.clear();
+                updateBoard();
+
+            } else {
+                curr.classList.add('active');
+                updateBoard();
+            }
+        }
+
+        function createCell(i, j, id) {
+            const cellSize = 40;
+
+            const cell = document.createElement('div');
+            cell.className = (i + j) % 2 ? 'cell black' : 'cell white',
+            cell.style.left = `${(i) * cellSize}px`;
+            cell.style.top = `${(8 - j) * cellSize}px`;
+            cell.onclick = onCellClick;
+            cell.id = id;
+            
+            const info1 = document.createElement('span');
+            info1.id = 'info1';
+            info1.innerText = id;
+            cell.appendChild(info1);
+
+            const info2 = document.createElement('span');
+            info2.id = 'info2';
+            cell.appendChild(info2);
+
+            const fig = document.createElement('span');
+            fig.id = 'fig';
+            cell.appendChild(fig);
+
+            return cell;
+        }
+
+        function initBoard() {
+            
+            const board = document.getElementById('board');
+
+            for (var i = 0; i < 8; i++) {
+                for (var j = 1; j <= 8; j++) {
+                    var id = `${LETTERS[i]}${j}`;
+                    const cell = createCell(i, j, id);
+                    board.appendChild(cell);
+
+                    figureNodesMap.set(id, cell.querySelector('#fig'));
+                }
+            }
+        }
+        
+        function initMiniBoard() {
+            const miniboard = document.getElementById('miniboard');
+            for (var i = 0; i < 6; i++) {
+                const bCell = createCell(i, 8, `b${FIGURE_NAMES[i]}`);
+                const wCell = createCell(i, 7, `w${FIGURE_NAMES[i]}`);
+
+                miniboard.appendChild(bCell);
+                miniboard.appendChild(wCell);
+
+                move(`b${FIGURE_NAMES[i]}`, `b${FIGURE_NAMES[i]}`);
+                move(`w${FIGURE_NAMES[i]}`, `w${FIGURE_NAMES[i]}`);
+            }
+        }
+
+        function setStartPosition() {
+            move([['br','a8'],['bn','b8'],['bb','c8'],['bq','d8'],['bk','e8'],['bb','f8'],['bn','g8'],['br','h8']]);
+            move([['bp','a7'],['bp','b7'],['bp','c7'],['bp','d7'],['bp','e7'],['bp','f7'],['bp','g7'],['bp','h7']]);
+
+            move([['','a6'],['','b6'],['','c6'],['','d6'],['','e6'],['','f6'],['','g6'],['','h6']]);
+            move([['','a5'],['','b5'],['','c5'],['','d5'],['','e5'],['','f5'],['','g5'],['','h5']]);
+            move([['','a4'],['','b4'],['','c4'],['','d4'],['','e4'],['','f4'],['','g4'],['','h4']]);
+            move([['','a3'],['','b3'],['','c3'],['','d3'],['','e3'],['','f3'],['','g3'],['','h3']]);
+
+            move([['wp','a2'],['wp','b2'],['wp','c2'],['wp','d2'],['wp','e2'],['wp','f2'],['wp','g2'],['wp','h2']]);
+            move([['wr','a1'],['wn','b1'],['wb','c1'],['wq','d1'],['wk','e1'],['wb','f1'],['wn','g1'],['wr','h1']]);
+        }
+
+        function setEmptyPosition() {
+
+            move([['','a8'],['','b8'],['','c8'],['','d8'],['','e8'],['','f8'],['','g8'],['','h8']]);
+            move([['','a7'],['','b7'],['','c7'],['','d7'],['','e7'],['','f7'],['','g7'],['','h7']]);
+
+            move([['','a6'],['','b6'],['','c6'],['','d6'],['','e6'],['','f6'],['','g6'],['','h6']]);
+            move([['','a5'],['','b5'],['','c5'],['','d5'],['','e5'],['','f5'],['','g5'],['','h5']]);
+            move([['','a4'],['','b4'],['','c4'],['','d4'],['','e4'],['','f4'],['','g4'],['','h4']]);
+            move([['','a3'],['','b3'],['','c3'],['','d3'],['','e3'],['','f3'],['','g3'],['','h3']]);
+
+            move([['','a2'],['','b2'],['','c2'],['','d2'],['','e2'],['','f2'],['','g2'],['','h2']]);
+            move([['','a1'],['','b1'],['','c1'],['','d1'],['','e1'],['','f1'],['','g1'],['','h1']]);
+        }
+
+        function getSingleFenCode(id) {
+            return FEN_MAP[`${figureNodesMap.get(id).className}`];
+            // const code = document.getElementById(id).querySelector('#fig').className;
+            // return FEN_MAP[code];
+        }
+
+        function getFenString() {
+            var result = [];
+            for (var i = 8; i >= 1; i--) {
+                var line = '';
+                for (var l = 0; l < 8; l++) {
+                    const code = getSingleFenCode(`${LETTERS[l]}${i}`);
+                    line += code;
+                }
+
+                line = line
+                    .replace('11111111', '8')
+                    .replace('1111111', '7')
+                    .replace('111111', '6')
+                    .replace('11111', '5')
+                    .replace('1111', '4',)
+                    .replace('111', '3').replace('111', '3')
+                    .replace('11', '2').replace('11', '2').replace('11', '2');
+
+                result.push(line);
+            }
+            return result.join('/');
+        }
+
+        function stopCompute() {
+            engineCommand('stop');
+        }
+
+        function goCompute() {
+            stopCompute();
+            movesMap.clear();
+
+            engineCommand('setoption name MultiPV value 299');
+            // engineCommand('go movetime 10000');
+            engineCommand(`go depth ${document.getElementById('depthValue').innerText}`);
+            // engineCommand('go infinite');
+        }
+
+        function goWhite() {
+            myLog('goWhite');
+            engineCommand(`position fen ${getFenString()} w AHah`);
+            goCompute();
+        }
+
+        function goBlack() {
+            myLog('goBlack');
+            engineCommand(`position fen ${getFenString()} b AHah`);
+            goCompute();
+        }
+
+        function stopCompute() {
+            engineCommand('stop');
+        }
+
+        function depthPlus() {
+            const dv = document.getElementById('depthValue');
+            dv.innerText = (+dv.innerText) + 1;
+        }
+        
+        function depthMinus() {
+            const dv = document.getElementById('depthValue');
+            dv.innerText = (+(dv.innerText)) - 1;
+        }
+
+        function playBestMove() {
+            if (lastBestMove.length == 4){
+                move(lastBestMove.slice(0, 2), lastBestMove.slice(2, 4));
+                lastBestMove = '';
+            }
+        }
+
+        document.getElementById('setStartPosition').onclick = setStartPosition;
+        document.getElementById('setEmptyPosition').onclick = setEmptyPosition;
+        document.getElementById('goWhite').onclick = goWhite;
+        document.getElementById('goBlack').onclick = goBlack;
+        document.getElementById('stopCompute').onclick = stopCompute;
+        document.getElementById('depthPlus').onclick = depthPlus;
+        document.getElementById('depthMinus').onclick = depthMinus;
+        document.getElementById('playBestMove').onclick = playBestMove;
+
+        initMiniBoard();
+        initBoard();
+        setStartPosition();
+        } catch(e) {
+            myLog(`[exception] ${e}`);
+        }
+    </script>
+</html>
