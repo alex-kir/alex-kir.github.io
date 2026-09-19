@@ -48,7 +48,7 @@
 
     .nav .page-num {
       font-size: 14px;
-      min-width: 80px;
+      min-width: 30px;
       text-align: center;
       color: #aaa;
     }
@@ -74,12 +74,14 @@
       border-radius: 8px;
       padding: 10px 14px;
       max-width: 260px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
       font-family: "Inter", "Open Sans", sans-serif;
       font-size: 14px;
     }
 
-    #dict-popup.visible { display: block; }
+    #dict-popup.visible {
+      display: block;
+    }
 
     #dict-word {
       font-weight: bold;
@@ -92,18 +94,24 @@
       min-height: 18px;
     }
 
-    #dict-translation.loading { color: #888; font-style: italic; }
-    #dict-translation.error   { color: #e08080; font-style: italic; }
+    #dict-translation.loading {
+      color: #888;
+      font-style: italic;
+    }
 
+    #dict-translation.error {
+      color: #e08080;
+      font-style: italic;
+    }
   </style>
 </head>
 
 <body>
 
   <div class="nav" id="nav-top">
-    <button id="prev-top" onclick="go(-1)">&#9664; Назад</button>
+    <button id="prev-top" onclick="go(-1)">&#9664;</button>
     <span class="page-num" id="page-top"></span>
-    <button id="next-top" onclick="go(+1)">Вперёд &#9654;</button>
+    <button id="next-top" onclick="go(+1)">&#9654;</button>
     <button onclick="changeFontSize(-1)" title="Уменьшить шрифт">&#x0041;&#x207B;</button>
     <button onclick="changeFontSize(+1)" title="Увеличить шрифт">&#x0041;&#x207A;</button>
   </div>
@@ -200,8 +208,8 @@
       return word.length > 1 ? word : null;
     }
 
-    const popup    = document.getElementById('dict-popup');
-    const popWord  = document.getElementById('dict-word');
+    const popup = document.getElementById('dict-popup');
+    const popWord = document.getElementById('dict-word');
     const popTrans = document.getElementById('dict-translation');
 
     function showPopup(word, x, y) {
@@ -225,12 +233,12 @@
       const pw = popup.offsetWidth || 260, ph = popup.offsetHeight || 70;
       const gap = 12;
       let left = x - pw / 2;
-      let top  = y - ph - gap;
+      let top = y - ph - gap;
       if (top < gap) top = y + gap;           // flip below
       if (left < gap) left = gap;
       if (left + pw > W - gap) left = W - pw - gap;
       popup.style.left = left + 'px';
-      popup.style.top  = top  + 'px';
+      popup.style.top = top + 'px';
     }
 
     function hidePopup() { popup.classList.remove('visible'); }
@@ -341,7 +349,7 @@
       ['top', 'bot'].forEach(id => {
         document.getElementById('prev-' + id).disabled = n <= 1;
         document.getElementById('next-' + id).disabled = !hasNext;
-        document.getElementById('page-' + id).textContent = 'Глава ' + n;
+        document.getElementById('page-' + id).textContent = n;
       });
     }
 
