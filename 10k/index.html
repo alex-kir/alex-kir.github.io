@@ -104,6 +104,8 @@
     <button id="prev-top" onclick="go(-1)">&#9664; Назад</button>
     <span class="page-num" id="page-top"></span>
     <button id="next-top" onclick="go(+1)">Вперёд &#9654;</button>
+    <button onclick="changeFontSize(-1)" title="Уменьшить шрифт">&#x0041;&#x207B;</button>
+    <button onclick="changeFontSize(+1)" title="Увеличить шрифт">&#x0041;&#x207A;</button>
   </div>
 
   <div id="dict-popup">
@@ -246,7 +248,7 @@
       const dy = Math.abs(t.clientY - touchStartY);
       if (dx > 10 || dy > 10) { hidePopup(); return; }  // was a scroll
 
-      if (popup.contains(e.target)) return;  // tap inside popup — keep it open
+      if (popup.contains(e.target)) { hidePopup(); return; }  // tap inside popup — close it
 
       const word = getWordAtPoint(t.clientX, t.clientY);
       if (word) {
@@ -260,12 +262,33 @@
     // Desktop: click
     document.addEventListener('click', e => {
       if ('ontouchstart' in window) return;  // touch device handles it above
-      if (popup.contains(e.target)) return;
+      if (popup.contains(e.target)) { hidePopup(); return; }
       const word = getWordAtPoint(e.clientX, e.clientY);
       if (word) showPopup(word, e.clientX, e.clientY);
       else hidePopup();
     });
     // ── End Dictionary ──────────────────────────────────────────
+
+    // ── Font size ────────────────────────────────────────────────
+    const FONT_KEY = 'tmr-fontsize';
+    const FONT_MIN = 12, FONT_MAX = 28, FONT_STEP = 2;
+
+    let fontSize = parseInt(localStorage.getItem(FONT_KEY)) || 16;
+
+    function applyFontSize() {
+      const el = document.getElementById('content');
+      el.style.fontSize = fontSize + 'px';
+      el.style.setProperty('--reader-font-size', fontSize + 'px');
+    }
+
+    function changeFontSize(delta) {
+      fontSize = Math.min(FONT_MAX, Math.max(FONT_MIN, fontSize + delta));
+      localStorage.setItem(FONT_KEY, fontSize);
+      applyFontSize();
+    }
+
+    applyFontSize();
+    // ── End Font size ────────────────────────────────────────────
 
     const STORAGE_KEY = 'tmr-progress';
     let currentN = 1;
