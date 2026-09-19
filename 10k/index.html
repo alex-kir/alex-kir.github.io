@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tribulation of Myriad Races</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0 16px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: "Inter", "Open Sans", sans-serif;
+    }
+
+    p,
+    span {
+      font-family: "Inter", "Open Sans", sans-serif;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px 0;
+    }
+
+    .nav button {
+      padding: 8px 20px;
+      background: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .nav button:hover:not(:disabled) {
+      background: #444;
+    }
+
+    .nav button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .nav .page-num {
+      font-size: 14px;
+      min-width: 80px;
+      text-align: center;
+      color: #aaa;
+    }
+
+    #content {
+      max-width: 840px;
+      margin: 0 auto;
+    }
+
+    #content p {
+      line-height: 1.7;
+      margin: 0.8em 0;
+      touch-action: manipulation;
+    }
+
+    /* Dictionary popup */
+    #dict-popup {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      border-radius: 8px;
+      padding: 10px 14px;
+      max-width: 260px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      font-family: "Inter", "Open Sans", sans-serif;
+      font-size: 14px;
+    }
+
+    #dict-popup.visible { display: block; }
+
+    #dict-word {
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    #dict-translation {
+      color: #b0e0b0;
+      min-height: 18px;
+    }
+
+    #dict-translation.loading { color: #888; font-style: italic; }
+    #dict-translation.error   { color: #e08080; font-style: italic; }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="nav" id="nav-top">
+    <button id="prev-top" onclick="go(-1)">&#9664; Назад</button>
+    <span class="page-num" id="page-top"></span>
+    <button id="next-top" onclick="go(+1)">Вперёд &#9654;</button>
+  </div>
+
+  <div id="dict-popup">
+    <div id="dict-word"></div>
+    <div id="dict-translation"></div>
+  </div>
+
+  <div id="content">Загрузка…</div>
+
+  <div class="nav" id="nav-bottom">
+    <button id="prev-bot" onclick="go(-1)">&#9664; Назад</button>
+    <span class="page-num" id="page-bot"></span>
+    <button id="next-bot" onclick="go(+1)">Вперёд &#9654;</button>
+  </div>
+
+  <script>
+    // ── Dictionary ──────────────────────────────────────────────
+    // 'google' | 'mymemory'
+    const TRANSLATOR = 'google';
+
+    const DICT_PREFIX = 'tmr-dict-';
+
+    function dictCacheKey(word) {
+      return DICT_PREFIX + word.toLowerCase();
+    }
+
+    function dictFromCache(word) {
+      try { return JSON.parse(localStorage.getItem(dictCacheKey(word))); } catch { return null; }
+    }
+
+    function dictToCache(word, result) {
+      localStorage.setItem(dictCacheKey(word), JSON.stringify(result));
+    }
+
+    function decodeHtmlEntities(str) {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = str;
+      return ta.value;
+    }
+
+    async function fetchFromGoogle(word) {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(word)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      // Response: [[["перевод","word",...]], ...]
+      const raw = data?.[0]?.map(chunk => chunk?.[0]).filter(Boolean).join('');
+      if (!raw) throw new Error('no translation');
+      return decodeHtmlEntities(raw);
+    }
+
+    async function fetchFromMyMemory(word) {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ru`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      const raw = data?.responseData?.translatedText;
+      if (!raw) throw new Error('no translation');
+      return decodeHtmlEntities(raw);
+    }
+
+    async function fetchTranslation(word) {
+      const cached = dictFromCache(word);
+      if (cached) return cached;
+
+      const text = TRANSLATOR === 'mymemory'
+        ? await fetchFromMyMemory(word)
+        : await fetchFromGoogle(word);
+
+      dictToCache(word, text);
+      return text;
+    }
+
+    function getWordAtPoint(x, y) {
+      let node, offset;
+      if (document.caretRangeFromPoint) {
+        const r = document.caretRangeFromPoint(x, y);
+        if (!r) return null;
+        node = r.startContainer; offset = r.startOffset;
+      } else if (document.caretPositionFromPoint) {
+        const p = document.caretPositionFromPoint(x, y);
+        if (!p) return null;
+        node = p.offsetNode; offset = p.offset;
+      } else return null;
+
+      if (node.nodeType !== Node.TEXT_NODE) return null;
+      const text = node.textContent;
+      let s = offset, e = offset;
+      while (s > 0 && /[a-zA-Z''-]/.test(text[s - 1])) s--;
+      while (e < text.length && /[a-zA-Z''-]/.test(text[e])) e++;
+      const word = text.slice(s, e).replace(/^['-]+|['-]+$/g, '');
+      return word.length > 1 ? word : null;
+    }
+
+    const popup    = document.getElementById('dict-popup');
+    const popWord  = document.getElementById('dict-word');
+    const popTrans = document.getElementById('dict-translation');
+
+    function showPopup(word, x, y) {
+      popWord.textContent = word;
+      popTrans.textContent = '…';
+      popTrans.className = 'loading';
+      popup.classList.add('visible');
+      placePopup(x, y);
+
+      fetchTranslation(word).then(t => {
+        popTrans.textContent = t;
+        popTrans.className = '';
+      }).catch(() => {
+        popTrans.textContent = 'ошибка перевода';
+        popTrans.className = 'error';
+      });
+    }
+
+    function placePopup(x, y) {
+      const W = window.innerWidth, H = window.innerHeight;
+      const pw = popup.offsetWidth || 260, ph = popup.offsetHeight || 70;
+      const gap = 12;
+      let left = x - pw / 2;
+      let top  = y - ph - gap;
+      if (top < gap) top = y + gap;           // flip below
+      if (left < gap) left = gap;
+      if (left + pw > W - gap) left = W - pw - gap;
+      popup.style.left = left + 'px';
+      popup.style.top  = top  + 'px';
+    }
+
+    function hidePopup() { popup.classList.remove('visible'); }
+
+    // Touch: ignore scroll, only fire on tap (< 10px move)
+    let touchStartX = 0, touchStartY = 0;
+    document.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      const dx = Math.abs(t.clientX - touchStartX);
+      const dy = Math.abs(t.clientY - touchStartY);
+      if (dx > 10 || dy > 10) { hidePopup(); return; }  // was a scroll
+
+      if (popup.contains(e.target)) return;  // tap inside popup — keep it open
+
+      const word = getWordAtPoint(t.clientX, t.clientY);
+      if (word) {
+        e.preventDefault();
+        showPopup(word, t.clientX, t.clientY);
+      } else {
+        hidePopup();
+      }
+    });
+
+    // Desktop: click
+    document.addEventListener('click', e => {
+      if ('ontouchstart' in window) return;  // touch device handles it above
+      if (popup.contains(e.target)) return;
+      const word = getWordAtPoint(e.clientX, e.clientY);
+      if (word) showPopup(word, e.clientX, e.clientY);
+      else hidePopup();
+    });
+    // ── End Dictionary ──────────────────────────────────────────
+
+    const STORAGE_KEY = 'tmr-progress';
+    let currentN = 1;
+    let scrollSaveTimer = null;
+
+    function saveProgress(n, paraIndex) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ chapter: n, para: paraIndex }));
+    }
+
+    function loadProgress() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+    }
+
+    // Parse hash: "#3-42" -> { chapter: 3, para: 42 }
+    function parseHash() {
+      const hash = window.location.hash.replace('#', '');
+      const [chStr, paraStr] = hash.split('-');
+      const chapter = parseInt(chStr, 10);
+      const para = parseInt(paraStr, 10);
+      return {
+        chapter: (chapter > 0) ? chapter : null,
+        para: (para >= 0) ? para : 0,
+      };
+    }
+
+    function setHash(n, para, replace = false) {
+      const newHash = '#' + n + (para > 0 ? '-' + para : '');
+      if (replace) {
+        history.replaceState(null, '', newHash);
+      } else {
+        history.pushState(null, '', newHash);
+      }
+    }
+
+    // Find index of the paragraph closest to the top of the viewport
+    function currentParaIndex() {
+      const paras = document.querySelectorAll('#content p');
+      for (let i = paras.length - 1; i >= 0; i--) {
+        if (paras[i].getBoundingClientRect().top <= 80) return i;
+      }
+      return 0;
+    }
+
+    function scrollToPara(index) {
+      const paras = document.querySelectorAll('#content p');
+      if (paras[index]) paras[index].scrollIntoView({ block: 'start' });
+    }
+
+    function setNav(n, hasNext) {
+      ['top', 'bot'].forEach(id => {
+        document.getElementById('prev-' + id).disabled = n <= 1;
+        document.getElementById('next-' + id).disabled = !hasNext;
+        document.getElementById('page-' + id).textContent = 'Глава ' + n;
+      });
+    }
+
+    async function load(n, restorePara) {
+      const el = document.getElementById('content');
+      el.textContent = 'Загрузка…';
+      setNav(n, false);
+
+      try {
+        const res = await fetch(`step2/tmr-chapter-${n}.html`);
+        if (!res.ok) throw new Error('not found');
+        const html = await res.text();
+        el.innerHTML = html;
+      } catch {
+        el.textContent = `Глава ${n} не найдена.`;
+        setNav(n, false);
+        return;
+      }
+
+      // probe next chapter
+      let hasNext = false;
+      try {
+        const probe = await fetch(`step2/tmr-chapter-${n + 1}.html`, { method: 'HEAD' });
+        hasNext = probe.ok;
+      } catch { }
+
+      setNav(n, hasNext);
+
+      if (restorePara > 0) {
+        scrollToPara(restorePara);
+      } else {
+        window.scrollTo(0, 0);
+      }
+
+      saveProgress(n, restorePara || 0);
+    }
+
+    function go(delta) {
+      const n = currentN + delta;
+      if (n < 1) return;
+      currentN = n;
+      setHash(n, 0);
+      load(n, 0);
+    }
+
+    // Update hash and localStorage on scroll (throttled)
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(() => {
+        const para = currentParaIndex();
+        setHash(currentN, para, true);
+        saveProgress(currentN, para);
+      }, 300);
+    });
+
+    window.addEventListener('popstate', () => {
+      const { chapter, para } = parseHash();
+      if (chapter && chapter !== currentN) {
+        currentN = chapter;
+        load(currentN, para);
+      }
+    });
+
+    // Initial load
+    const { chapter: hashChapter, para: hashPara } = parseHash();
+    const progress = loadProgress();
+
+    if (hashChapter) {
+      currentN = hashChapter;
+      load(currentN, hashPara);
+    } else if (progress.chapter) {
+      currentN = progress.chapter;
+      setHash(currentN, progress.para || 0, true);
+      load(currentN, progress.para || 0);
+    } else {
+      currentN = 1;
+      load(currentN, 0);
+    }
+  </script>
+</body>
+
+</html>
