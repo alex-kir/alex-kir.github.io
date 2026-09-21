@@ -24,7 +24,12 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      padding: 16px 0;
+      padding: 10px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
     }
 
     .nav button {
@@ -48,7 +53,7 @@
 
     .nav .page-num {
       font-size: 14px;
-      min-width: 30px;
+      min-width: 60px;
       text-align: center;
       color: #aaa;
     }
@@ -103,6 +108,97 @@
       color: #e08080;
       font-style: italic;
     }
+
+    /* Settings overlay */
+    #settings-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 800;
+    }
+
+    #settings-backdrop.visible {
+      display: block;
+    }
+
+    #settings-panel {
+      position: absolute;
+      inset: 50px;
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    #settings-panel h2 {
+      margin: 0 0 20px;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    #settings-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+
+    #settings-close:hover {
+      color: #fff;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .settings-label {
+      font-size: 14px;
+      color: #ccc;
+      flex: 1;
+    }
+
+    .settings-row button {
+      padding: 6px 14px;
+      background: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .settings-row button:hover {
+      background: #444;
+    }
+
+    #font-size-val {
+      font-size: 14px;
+      color: #aaa;
+      min-width: 36px;
+      text-align: center;
+    }
+
+    #translator-select {
+      background: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -112,8 +208,30 @@
     <button id="prev-top" onclick="go(-1)">&#9664;</button>
     <span class="page-num" id="page-top"></span>
     <button id="next-top" onclick="go(+1)">&#9654;</button>
-    <button onclick="changeFontSize(-1)" title="Уменьшить шрифт">&#x0041;&#x207B;</button>
-    <button onclick="changeFontSize(+1)" title="Увеличить шрифт">&#x0041;&#x207A;</button>
+    <button onclick="openSettings()" title="Настройки">&#9881;</button>
+    <button id="fs-btn" onclick="toggleFullscreen()" title="Полный экран">&#x26F6;</button>
+  </div>
+
+  <div id="settings-backdrop" onclick="handleBackdropClick(event)">
+    <div id="settings-panel">
+      <h2>Настройки</h2>
+      <button id="settings-close" onclick="closeSettings()">&#x2715;</button>
+
+      <div class="settings-row">
+        <span class="settings-label">Размер шрифта</span>
+        <button onclick="changeFontSize(-2)">A&#x207B;</button>
+        <span id="font-size-val"></span>
+        <button onclick="changeFontSize(+2)">A&#x207A;</button>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Переводчик</span>
+        <select id="translator-select" onchange="changeTranslator(this.value)">
+          <option value="google">Google</option>
+          <option value="mymemory">MyMemory</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div id="dict-popup">
@@ -123,16 +241,20 @@
 
   <div id="content">Загрузка…</div>
 
-  <div class="nav" id="nav-bottom">
-    <button id="prev-bot" onclick="go(-1)">&#9664; Назад</button>
-    <span class="page-num" id="page-bot"></span>
-    <button id="next-bot" onclick="go(+1)">Вперёд &#9654;</button>
-  </div>
 
   <script>
     // ── Dictionary ──────────────────────────────────────────────
-    // 'google' | 'mymemory'
-    const TRANSLATOR = 'google';
+    const TRANSLATOR_KEY = 'tmr-translator';
+    let translator = localStorage.getItem(TRANSLATOR_KEY) || 'google';
+
+    function changeTranslator(val) {
+      translator = val;
+      localStorage.setItem(TRANSLATOR_KEY, val);
+    }
+
+    function initTranslatorSelect() {
+      document.getElementById('translator-select').value = translator;
+    }
 
     const DICT_PREFIX = 'tmr-dict-';
 
@@ -179,7 +301,7 @@
       const cached = dictFromCache(word);
       if (cached) return cached;
 
-      const text = TRANSLATOR === 'mymemory'
+      const text = translator === 'mymemory'
         ? await fetchFromMyMemory(word)
         : await fetchFromGoogle(word);
 
@@ -244,10 +366,11 @@
     function hidePopup() { popup.classList.remove('visible'); }
 
     // Touch: ignore scroll, only fire on tap (< 10px move)
-    let touchStartX = 0, touchStartY = 0;
+    let touchStartX = 0, touchStartY = 0, touchStartTarget = null;
     document.addEventListener('touchstart', e => {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      touchStartTarget = e.target;
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
@@ -256,7 +379,10 @@
       const dy = Math.abs(t.clientY - touchStartY);
       if (dx > 10 || dy > 10) { hidePopup(); return; }  // was a scroll
 
-      if (popup.contains(e.target)) { hidePopup(); return; }  // tap inside popup — close it
+      // игнорировать если касание началось вне контента (кнопки меню, настройки и т.д.)
+      if (!document.getElementById('content').contains(touchStartTarget)) return;
+
+      if (popup.classList.contains('visible')) { hidePopup(); return; }  // любой тап скрывает попап
 
       const word = getWordAtPoint(t.clientX, t.clientY);
       if (word) {
@@ -270,16 +396,51 @@
     // Desktop: click
     document.addEventListener('click', e => {
       if ('ontouchstart' in window) return;  // touch device handles it above
-      if (popup.contains(e.target)) { hidePopup(); return; }
+      if (popup.classList.contains('visible')) { hidePopup(); return; }
       const word = getWordAtPoint(e.clientX, e.clientY);
       if (word) showPopup(word, e.clientX, e.clientY);
       else hidePopup();
     });
     // ── End Dictionary ──────────────────────────────────────────
 
+    // ── Fullscreen ───────────────────────────────────────────────
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      document.getElementById('fs-btn').textContent =
+        document.fullscreenElement ? '\u22BF' : '\u26F6';
+    });
+    // ── End Fullscreen ───────────────────────────────────────────
+
+    // ── Settings panel ───────────────────────────────────────────
+    function openSettings() {
+      document.getElementById('settings-backdrop').classList.add('visible');
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-backdrop').classList.remove('visible');
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target === document.getElementById('settings-backdrop')) closeSettings();
+    }
+
+    // Поглощаем все touch-события на панели настроек — они не должны доходить до контента
+    const backdrop = document.getElementById('settings-backdrop');
+    ['touchstart', 'touchend', 'touchmove', 'click'].forEach(evt => {
+      backdrop.addEventListener(evt, e => e.stopPropagation(), { capture: false });
+    });
+    // ── End Settings panel ───────────────────────────────────────
+
     // ── Font size ────────────────────────────────────────────────
     const FONT_KEY = 'tmr-fontsize';
-    const FONT_MIN = 12, FONT_MAX = 28, FONT_STEP = 2;
+    const FONT_MIN = 12, FONT_MAX = 28;
 
     let fontSize = parseInt(localStorage.getItem(FONT_KEY)) || 16;
 
@@ -287,6 +448,7 @@
       const el = document.getElementById('content');
       el.style.fontSize = fontSize + 'px';
       el.style.setProperty('--reader-font-size', fontSize + 'px');
+      document.getElementById('font-size-val').textContent = fontSize + 'px';
     }
 
     function changeFontSize(delta) {
@@ -296,6 +458,7 @@
     }
 
     applyFontSize();
+    initTranslatorSelect();
     // ── End Font size ────────────────────────────────────────────
 
     const STORAGE_KEY = 'tmr-progress';
@@ -345,12 +508,11 @@
       if (paras[index]) paras[index].scrollIntoView({ block: 'start' });
     }
 
-    function setNav(n, hasNext) {
-      ['top', 'bot'].forEach(id => {
-        document.getElementById('prev-' + id).disabled = n <= 1;
-        document.getElementById('next-' + id).disabled = !hasNext;
-        document.getElementById('page-' + id).textContent = n;
-      });
+    function setNav(n, hasNext, para) {
+      document.getElementById('prev-top').disabled = n <= 1;
+      document.getElementById('next-top').disabled = !hasNext;
+      const paraStr = (para > 0) ? ' · §' + para : '';
+      document.getElementById('page-top').textContent = n + paraStr;
     }
 
     async function load(n, restorePara) {
@@ -376,7 +538,7 @@
         hasNext = probe.ok;
       } catch { }
 
-      setNav(n, hasNext);
+      setNav(n, hasNext, restorePara);
 
       if (restorePara > 0) {
         scrollToPara(restorePara);
@@ -402,6 +564,7 @@
         const para = currentParaIndex();
         setHash(currentN, para, true);
         saveProgress(currentN, para);
+        document.getElementById('page-top').textContent = currentN + (para > 0 ? ' · §' + para : '');
       }, 300);
     });
 
