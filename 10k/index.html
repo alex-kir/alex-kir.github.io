@@ -8,10 +8,14 @@
   <style>
     body {
       margin: 0;
-      padding: 0 16px;
+      padding: 0;
       background: #1a1a1a;
       color: #e0e0e0;
       font-family: "Inter", "Open Sans", sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     p,
@@ -25,11 +29,10 @@
       justify-content: center;
       gap: 16px;
       padding: 10px 16px;
-      position: sticky;
-      top: 0;
-      z-index: 500;
+      flex-shrink: 0;
       background: #1a1a1a;
       border-bottom: 1px solid #333;
+      z-index: 500;
     }
 
     .nav button {
@@ -59,8 +62,13 @@
     }
 
     #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 32px;
       max-width: 840px;
+      width: 100%;
       margin: 0 auto;
+      box-sizing: border-box;
     }
 
     #content p {
@@ -494,11 +502,13 @@
       }
     }
 
-    // Find index of the paragraph closest to the top of the viewport
+    // Find index of the paragraph closest to the top of the scroll container
     function currentParaIndex() {
-      const paras = document.querySelectorAll('#content p');
+      const container = document.getElementById('content');
+      const top = container.getBoundingClientRect().top;
+      const paras = container.querySelectorAll('p');
       for (let i = paras.length - 1; i >= 0; i--) {
-        if (paras[i].getBoundingClientRect().top <= 80) return i;
+        if (paras[i].getBoundingClientRect().top <= top + 8) return i;
       }
       return 0;
     }
@@ -543,7 +553,7 @@
       if (restorePara > 0) {
         scrollToPara(restorePara);
       } else {
-        window.scrollTo(0, 0);
+        document.getElementById('content').scrollTo(0, 0);
       }
 
       saveProgress(n, restorePara || 0);
@@ -558,7 +568,7 @@
     }
 
     // Update hash and localStorage on scroll (throttled)
-    window.addEventListener('scroll', () => {
+    document.getElementById('content').addEventListener('scroll', () => {
       clearTimeout(scrollSaveTimer);
       scrollSaveTimer = setTimeout(() => {
         const para = currentParaIndex();
