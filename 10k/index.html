@@ -86,36 +86,52 @@
       border: 1px solid #555;
       border-radius: 8px;
       padding: 10px 14px;
-      max-width: 260px;
+      max-width: 300px;
+      min-width: 180px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
       font-family: "Inter", "Open Sans", sans-serif;
       font-size: 14px;
+      text-align: center;
     }
 
-    #dict-popup.visible {
-      display: block;
+    #dict-popup.visible { display: block; }
+
+    #dict-word-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 6px;
     }
 
     #dict-word {
       font-weight: bold;
       color: #fff;
-      margin-bottom: 4px;
+      flex: 1;
     }
+
+    #dict-btn-left, #dict-btn-right {
+      background: none;
+      border: 1px solid #555;
+      color: #aaa;
+      border-radius: 4px;
+      padding: 2px 7px;
+      cursor: pointer;
+      font-size: 13px;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+
+    #dict-btn-left:hover, #dict-btn-right:hover { color: #fff; border-color: #888; }
+    #dict-btn-left:disabled, #dict-btn-right:disabled { opacity: 0.2; cursor: default; }
 
     #dict-translation {
       color: #b0e0b0;
       min-height: 18px;
     }
 
-    #dict-translation.loading {
-      color: #888;
-      font-style: italic;
-    }
-
-    #dict-translation.error {
-      color: #e08080;
-      font-style: italic;
-    }
+    #dict-translation.loading { color: #888; font-style: italic; }
+    #dict-translation.error   { color: #e08080; font-style: italic; }
 
     /* Settings overlay */
     #settings-backdrop {
@@ -243,7 +259,11 @@
   </div>
 
   <div id="dict-popup">
-    <div id="dict-word"></div>
+    <div id="dict-word-row">
+      <button id="dict-btn-left" onclick="expandSel(-1)">&#x25C1;|</button>
+      <span id="dict-word"></span>
+      <button id="dict-btn-right" onclick="expandSel(+1)">|&#x25B7;</button>
+    </div>
     <div id="dict-translation"></div>
   </div>
 
@@ -317,7 +337,10 @@
       return text;
     }
 
-    function getWordAtPoint(x, y) {
+    // Контекст текущего выделения
+    let ctx = null;  // { text, selStart, selEnd, sentStart, sentEnd, tapX, tapY }
+
+    function getContextAtPoint(x, y) {
       let node, offset;
       if (document.caretRangeFromPoint) {
         const r = document.caretRangeFromPoint(x, y);
@@ -331,25 +354,66 @@
 
       if (node.nodeType !== Node.TEXT_NODE) return null;
       const text = node.textContent;
+
+      // Слово под пальцем
       let s = offset, e = offset;
       while (s > 0 && /[a-zA-Z''-]/.test(text[s - 1])) s--;
       while (e < text.length && /[a-zA-Z''-]/.test(text[e])) e++;
       const word = text.slice(s, e).replace(/^['-]+|['-]+$/g, '');
-      return word.length > 1 ? word : null;
+      if (word.length <= 1) return null;
+
+      // Границы предложения (не переходим через . ! ?)
+      const enders = /[.!?]/;
+      let sentStart = s;
+      while (sentStart > 0 && !enders.test(text[sentStart - 1])) sentStart--;
+      let sentEnd = e;
+      while (sentEnd < text.length && !enders.test(text[sentEnd])) sentEnd++;
+
+      return { text, selStart: s, selEnd: e, sentStart, sentEnd, tapX: x, tapY: y };
     }
 
-    const popup = document.getElementById('dict-popup');
-    const popWord = document.getElementById('dict-word');
-    const popTrans = document.getElementById('dict-translation');
+    function selPhrase() {
+      return ctx ? ctx.text.slice(ctx.selStart, ctx.selEnd).trim() : '';
+    }
 
-    function showPopup(word, x, y) {
-      popWord.textContent = word;
+    function expandSel(dir) {
+      if (!ctx) return;
+      const { text, sentStart, sentEnd } = ctx;
+      if (dir < 0) {
+        let s = ctx.selStart;
+        while (s > sentStart && /\s/.test(text[s - 1])) s--;
+        while (s > sentStart && /[^a-zA-Z]/.test(text[s - 1]) && !/\s/.test(text[s - 1])) s--;
+        while (s > sentStart && /[a-zA-Z''-]/.test(text[s - 1])) s--;
+        if (s === ctx.selStart) return;
+        ctx.selStart = s;
+      } else {
+        let e = ctx.selEnd;
+        while (e < sentEnd && /\s/.test(text[e])) e++;
+        while (e < sentEnd && /[^a-zA-Z]/.test(text[e]) && !/\s/.test(text[e])) e++;
+        while (e < sentEnd && /[a-zA-Z''-]/.test(text[e])) e++;
+        if (e === ctx.selEnd) return;
+        ctx.selEnd = e;
+      }
+      translateAndShow();
+    }
+
+    const popup    = document.getElementById('dict-popup');
+    const popWord  = document.getElementById('dict-word');
+    const popTrans = document.getElementById('dict-translation');
+    const btnLeft  = document.getElementById('dict-btn-left');
+    const btnRight = document.getElementById('dict-btn-right');
+
+    function translateAndShow() {
+      const phrase = selPhrase();
+      popWord.textContent = phrase;
       popTrans.textContent = '…';
       popTrans.className = 'loading';
+      // Кнопки: отключить если дошли до границы предложения
+      btnLeft.disabled  = ctx.selStart <= ctx.sentStart;
+      btnRight.disabled = ctx.selEnd   >= ctx.sentEnd;
       popup.classList.add('visible');
-      placePopup(x, y);
 
-      fetchTranslation(word).then(t => {
+      fetchTranslation(phrase).then(t => {
         popTrans.textContent = t;
         popTrans.className = '';
       }).catch(() => {
@@ -358,20 +422,29 @@
       });
     }
 
+    function showPopupAt(x, y) {
+      const c = getContextAtPoint(x, y);
+      if (!c) return false;
+      ctx = c;
+      placePopup(x, y);
+      translateAndShow();
+      return true;
+    }
+
     function placePopup(x, y) {
-      const W = window.innerWidth, H = window.innerHeight;
-      const pw = popup.offsetWidth || 260, ph = popup.offsetHeight || 70;
+      const W = window.innerWidth;
+      const pw = popup.offsetWidth || 280, ph = popup.offsetHeight || 80;
       const gap = 12;
       let left = x - pw / 2;
-      let top = y - ph - gap;
-      if (top < gap) top = y + gap;           // flip below
+      let top  = y - ph - gap;
+      if (top < gap) top = y + gap;
       if (left < gap) left = gap;
       if (left + pw > W - gap) left = W - pw - gap;
       popup.style.left = left + 'px';
-      popup.style.top = top + 'px';
+      popup.style.top  = top  + 'px';
     }
 
-    function hidePopup() { popup.classList.remove('visible'); }
+    function hidePopup() { popup.classList.remove('visible'); ctx = null; }
 
     // Touch: ignore scroll, only fire on tap (< 10px move)
     let touchStartX = 0, touchStartY = 0, touchStartTarget = null;
@@ -387,27 +460,21 @@
       const dy = Math.abs(t.clientY - touchStartY);
       if (dx > 10 || dy > 10) { hidePopup(); return; }  // was a scroll
 
-      // игнорировать если касание началось вне контента (кнопки меню, настройки и т.д.)
+      // игнорировать если касание началось вне контента (но не в самом попапе)
+      if (popup.contains(touchStartTarget)) return;
       if (!document.getElementById('content').contains(touchStartTarget)) return;
 
-      if (popup.classList.contains('visible')) { hidePopup(); return; }  // любой тап скрывает попап
+      if (popup.classList.contains('visible')) { hidePopup(); return; }
 
-      const word = getWordAtPoint(t.clientX, t.clientY);
-      if (word) {
-        e.preventDefault();
-        showPopup(word, t.clientX, t.clientY);
-      } else {
-        hidePopup();
-      }
+      if (showPopupAt(t.clientX, t.clientY)) e.preventDefault();
     });
 
     // Desktop: click
     document.addEventListener('click', e => {
-      if ('ontouchstart' in window) return;  // touch device handles it above
+      if ('ontouchstart' in window) return;
+      if (popup.contains(e.target)) return;  // клик внутри попапа — не трогаем
       if (popup.classList.contains('visible')) { hidePopup(); return; }
-      const word = getWordAtPoint(e.clientX, e.clientY);
-      if (word) showPopup(word, e.clientX, e.clientY);
-      else hidePopup();
+      showPopupAt(e.clientX, e.clientY);
     });
     // ── End Dictionary ──────────────────────────────────────────
 
