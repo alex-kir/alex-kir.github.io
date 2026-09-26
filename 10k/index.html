@@ -128,6 +128,8 @@
     #dict-translation {
       color: #b0e0b0;
       min-height: 18px;
+      white-space: pre-line;
+      text-align: left;
     }
 
     #dict-translation.loading { color: #888; font-style: italic; }
@@ -291,11 +293,32 @@
     }
 
     function dictFromCache(word) {
-      try { return JSON.parse(localStorage.getItem(dictCacheKey(word))); } catch { return null; }
+      try {
+        const raw = localStorage.getItem(dictCacheKey(word));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // Migration: old format was a plain string
+        if (typeof parsed === 'string') {
+          const migrated = { unk: parsed };
+          localStorage.setItem(dictCacheKey(word), JSON.stringify(migrated));
+          return migrated;
+        }
+        return parsed;
+      } catch { return null; }
     }
 
-    function dictToCache(word, result) {
-      localStorage.setItem(dictCacheKey(word), JSON.stringify(result));
+    function dictToCache(word, provider, text) {
+      const existing = dictFromCache(word) || {};
+      existing[provider] = text;
+      localStorage.setItem(dictCacheKey(word), JSON.stringify(existing));
+    }
+
+    function formatTranslations(obj) {
+      const labels = { google: 'G', mymemory: 'M', unk: 'U' };
+      return Object.entries(obj)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${labels[k] ?? k}: ${v}`)
+        .join('\n');
     }
 
     function decodeHtmlEntities(str) {
@@ -327,14 +350,14 @@
 
     async function fetchTranslation(word) {
       const cached = dictFromCache(word);
-      if (cached) return cached;
+      if (cached?.[translator]) return cached;
 
       const text = translator === 'mymemory'
         ? await fetchFromMyMemory(word)
         : await fetchFromGoogle(word);
 
-      dictToCache(word, text);
-      return text;
+      dictToCache(word, translator, text);
+      return dictFromCache(word);
     }
 
     // Контекст текущего выделения
@@ -413,8 +436,8 @@
       btnRight.disabled = ctx.selEnd   >= ctx.sentEnd;
       popup.classList.add('visible');
 
-      fetchTranslation(phrase).then(t => {
-        popTrans.textContent = t;
+      fetchTranslation(phrase).then(obj => {
+        popTrans.textContent = formatTranslations(obj);
         popTrans.className = '';
       }).catch(() => {
         popTrans.textContent = 'ошибка перевода';
