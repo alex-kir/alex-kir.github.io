@@ -125,6 +125,39 @@
     #dict-btn-left:hover, #dict-btn-right:hover { color: #fff; border-color: #888; }
     #dict-btn-left:disabled, #dict-btn-right:disabled { opacity: 0.2; cursor: default; }
 
+    #dict-hits {
+      font-size: 12px;
+      color: #888;
+      font-weight: normal;
+      margin-left: 4px;
+    }
+
+    #dict-speak {
+      background: none;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 2px 7px;
+      cursor: pointer;
+      font-size: 13px;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+
+    #dict-speak:hover { border-color: #888; }
+    #dict-speak.hidden { display: none; }
+
+    /* Подсветка известных слов (CSS Custom Highlight API) */
+    ::highlight(tmr-known) {
+      text-decoration: underline dotted #5a8a6a;
+      text-underline-offset: 3px;
+    }
+
+    ::highlight(tmr-hard) {
+      text-decoration: underline solid #d09a40;
+      text-underline-offset: 3px;
+      color: #f0d0a0;
+    }
+
     #dict-translation {
       color: #b0e0b0;
       min-height: 18px;
@@ -257,13 +290,24 @@
           <option value="mymemory">MyMemory</option>
         </select>
       </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Подсвечивать известные слова</span>
+        <input type="checkbox" id="highlight-toggle" onchange="changeHighlight(this.checked)">
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Словарь</span>
+        <button onclick="exportDictionary()">Скачать JSON</button>
+      </div>
     </div>
   </div>
 
   <div id="dict-popup">
     <div id="dict-word-row">
       <button id="dict-btn-left" onclick="expandSel(-1)">&#x25C1;|</button>
-      <span id="dict-word"></span>
+      <span id="dict-word"><span id="dict-word-text"></span><span id="dict-hits"></span></span>
+      <button id="dict-speak" onclick="speakPhrase()" title="Произнести">&#x1F50A;</button>
       <button id="dict-btn-right" onclick="expandSel(+1)">|&#x25B7;</button>
     </div>
     <div id="dict-translation"></div>
@@ -292,33 +336,95 @@
       return DICT_PREFIX + word.toLowerCase();
     }
 
+    // Дата по умолчанию для переводов, сделанных до появления отметок времени
+    const LEGACY_TS = '2026-10-26T00:00:00';
+
+    // Ключи записи, которые не являются переводчиками (служебные поля)
+    const DICT_META_KEYS = new Set(['hits']);
+
+    // Приводит запись к актуальному формату:
+    //   { google: { text, ts }, mymemory: { text, ts }, unk: { text, ts }, hits: N }
+    // Старые форматы: строка -> { unk: ... };  { google: "текст" } -> { google: { text, ts: LEGACY_TS } }
+    // Если есть известный перевод (google/mymemory), неизвестный (unk) удаляется.
+    // hits — сколько раз слово смотрели в словаре.
+    function normalizeDictEntry(parsed) {
+      const obj = typeof parsed === 'string' ? { unk: parsed } : (parsed || {});
+      let changed = typeof parsed === 'string';
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (DICT_META_KEYS.has(k)) continue;
+        if (!v) { changed = true; continue; }
+        if (typeof v === 'string') { out[k] = { text: v, ts: LEGACY_TS }; changed = true; }
+        else if (v.text) out[k] = { text: v.text, ts: v.ts || LEGACY_TS };
+        else changed = true;
+      }
+      if (out.unk && (out.google || out.mymemory)) { delete out.unk; changed = true; }
+      const hits = Number(obj.hits);
+      if (Number.isInteger(hits) && hits > 0) out.hits = hits;
+      return { entry: out, changed };
+    }
+
+    // Увеличивает счётчик обращений к слову и возвращает обновлённую запись
+    function dictBumpHits(word) {
+      const entry = dictFromCache(word);
+      if (!entry) return null;
+      entry.hits = (entry.hits || 0) + 1;
+      localStorage.setItem(dictCacheKey(word), JSON.stringify(entry));
+      knownIndex = null;
+      return entry;
+    }
+
     function dictFromCache(word) {
       try {
-        const raw = localStorage.getItem(dictCacheKey(word));
+        const key = dictCacheKey(word);
+        const raw = localStorage.getItem(key);
         if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        // Migration: old format was a plain string
-        if (typeof parsed === 'string') {
-          const migrated = { unk: parsed };
-          localStorage.setItem(dictCacheKey(word), JSON.stringify(migrated));
-          return migrated;
-        }
-        return parsed;
+        const { entry, changed } = normalizeDictEntry(JSON.parse(raw));
+        if (changed) localStorage.setItem(key, JSON.stringify(entry));
+        return entry;
       } catch { return null; }
     }
 
     function dictToCache(word, provider, text) {
       const existing = dictFromCache(word) || {};
-      existing[provider] = text;
-      localStorage.setItem(dictCacheKey(word), JSON.stringify(existing));
+      existing[provider] = { text, ts: new Date().toISOString() };
+      const { entry } = normalizeDictEntry(existing);
+      localStorage.setItem(dictCacheKey(word), JSON.stringify(entry));
+      knownIndex = null;
     }
 
     function formatTranslations(obj) {
       const labels = { google: 'G', mymemory: 'M', unk: 'U' };
       return Object.entries(obj)
-        .filter(([, v]) => v)
-        .map(([k, v]) => `${labels[k] ?? k}: ${v}`)
+        .filter(([, v]) => v?.text)
+        .map(([k, v]) => `${labels[k] ?? k}: ${v.text}`)
         .join('\n');
+    }
+
+    // Экспорт всего словаря из localStorage в JSON-файл
+    function exportDictionary() {
+      const dict = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key.startsWith(DICT_PREFIX)) continue;
+        const word = key.slice(DICT_PREFIX.length);
+        const entry = dictFromCache(word);
+        if (entry && Object.keys(entry).length) dict[word] = entry;
+      }
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        count: Object.keys(dict).length,
+        translations: dict,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tmr-dictionary-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function decodeHtmlEntities(str) {
@@ -350,14 +456,123 @@
 
     async function fetchTranslation(word) {
       const cached = dictFromCache(word);
-      if (cached?.[translator]) return cached;
+      if (cached?.[translator]?.text) return dictBumpHits(word);
 
       const text = translator === 'mymemory'
         ? await fetchFromMyMemory(word)
         : await fetchFromGoogle(word);
 
       dictToCache(word, translator, text);
-      return dictFromCache(word);
+      return dictBumpHits(word);
+    }
+
+    // ── Произношение (Web Speech API) ───────────────────────────
+    const speechOk = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    function pickEnglishVoice() {
+      const voices = speechSynthesis.getVoices();
+      return voices.find(v => /^en[-_]US/i.test(v.lang))
+          || voices.find(v => /^en/i.test(v.lang))
+          || null;
+    }
+
+    function speakPhrase() {
+      if (!speechOk) return;
+      const phrase = selPhrase();
+      if (!phrase) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(phrase);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      const voice = pickEnglishVoice();
+      if (voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    }
+
+    // ── Подсветка известных слов (CSS Custom Highlight API) ─────
+    const HIGHLIGHT_KEY = 'tmr-highlight';
+    const HARD_HITS = 3;   // с этого числа обращений слово считается «трудным»
+    const highlightOk = typeof Highlight !== 'undefined' && typeof CSS !== 'undefined' && CSS.highlights;
+    let highlightOn = localStorage.getItem(HIGHLIGHT_KEY) !== '0';
+    let knownIndex = null;  // { single: Map<word, hits>, multi: [[phrase, hits], ...] }
+
+    function changeHighlight(on) {
+      highlightOn = !!on;
+      localStorage.setItem(HIGHLIGHT_KEY, highlightOn ? '1' : '0');
+      applyHighlights();
+    }
+
+    function initHighlightToggle() {
+      const cb = document.getElementById('highlight-toggle');
+      cb.checked = highlightOn;
+      cb.disabled = !highlightOk;
+      if (!highlightOk) cb.title = 'Браузер не поддерживает CSS Highlight API';
+    }
+
+    function buildKnownIndex() {
+      const single = new Map(), multi = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key.startsWith(DICT_PREFIX)) continue;
+        const phrase = key.slice(DICT_PREFIX.length);
+        let hits = 0;
+        try { hits = Number(JSON.parse(localStorage.getItem(key))?.hits) || 0; } catch { }
+        if (phrase.includes(' ')) multi.push([phrase, hits]);
+        else single.set(phrase, hits);
+      }
+      return { single, multi };
+    }
+
+    function applyHighlights() {
+      if (!highlightOk) return;
+      CSS.highlights.delete('tmr-known');
+      CSS.highlights.delete('tmr-hard');
+      if (!highlightOn) return;
+
+      if (!knownIndex) knownIndex = buildKnownIndex();
+      const { single, multi } = knownIndex;
+      if (!single.size && !multi.length) return;
+
+      const known = new Highlight(), hard = new Highlight();
+      const addRange = (node, start, end, hits) => {
+        const r = new Range();
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        (hits >= HARD_HITS ? hard : known).add(r);
+      };
+
+      const walker = document.createTreeWalker(document.getElementById('content'), NodeFilter.SHOW_TEXT);
+      const wordRe = /[a-zA-Z][a-zA-Z'-]*/g;
+      let node;
+      while ((node = walker.nextNode())) {
+        const text = node.textContent;
+        if (!/[a-zA-Z]/.test(text)) continue;
+        const lower = text.toLowerCase();
+
+        // Одиночные слова
+        let m;
+        wordRe.lastIndex = 0;
+        while ((m = wordRe.exec(text))) {
+          const w = m[0].replace(/^['-]+|['-]+$/g, '').toLowerCase();
+          const hits = single.get(w);
+          if (hits === undefined) continue;
+          addRange(node, m.index, m.index + m[0].length, hits);
+        }
+
+        // Фразы из нескольких слов
+        for (const [phrase, hits] of multi) {
+          let idx = lower.indexOf(phrase);
+          while (idx !== -1) {
+            const before = lower[idx - 1], after = lower[idx + phrase.length];
+            const boundaryOk = !(before && /[a-z]/.test(before)) && !(after && /[a-z]/.test(after));
+            if (boundaryOk) addRange(node, idx, idx + phrase.length, hits);
+            idx = lower.indexOf(phrase, idx + phrase.length);
+          }
+        }
+      }
+
+      CSS.highlights.set('tmr-known', known);
+      CSS.highlights.set('tmr-hard', hard);
     }
 
     // Контекст текущего выделения
@@ -421,14 +636,18 @@
     }
 
     const popup    = document.getElementById('dict-popup');
-    const popWord  = document.getElementById('dict-word');
+    const popWord  = document.getElementById('dict-word-text');
+    const popHits  = document.getElementById('dict-hits');
     const popTrans = document.getElementById('dict-translation');
     const btnLeft  = document.getElementById('dict-btn-left');
     const btnRight = document.getElementById('dict-btn-right');
+    const btnSpeak = document.getElementById('dict-speak');
+    if (!speechOk) btnSpeak.classList.add('hidden');
 
     function translateAndShow() {
       const phrase = selPhrase();
       popWord.textContent = phrase;
+      popHits.textContent = '';
       popTrans.textContent = '…';
       popTrans.className = 'loading';
       // Кнопки: отключить если дошли до границы предложения
@@ -437,8 +656,12 @@
       popup.classList.add('visible');
 
       fetchTranslation(phrase).then(obj => {
+        // Попап мог переключиться на другую фразу, пока шёл запрос
+        if (selPhrase() !== phrase) return;
         popTrans.textContent = formatTranslations(obj);
         popTrans.className = '';
+        popHits.textContent = obj?.hits > 1 ? `×${obj.hits}` : '';
+        applyHighlights();
       }).catch(() => {
         popTrans.textContent = 'ошибка перевода';
         popTrans.className = 'error';
@@ -557,6 +780,7 @@
 
     applyFontSize();
     initTranslatorSelect();
+    initHighlightToggle();
     // ── End Font size ────────────────────────────────────────────
 
     const STORAGE_KEY = 'tmr-progress';
@@ -625,6 +849,7 @@
         if (!res.ok) throw new Error('not found');
         const html = await res.text();
         el.innerHTML = html;
+        applyHighlights();
       } catch {
         el.textContent = `Глава ${n} не найдена.`;
         setNav(n, false);
