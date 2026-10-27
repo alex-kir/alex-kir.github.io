@@ -146,6 +146,67 @@
     #dict-speak:hover { border-color: #888; }
     #dict-speak.hidden { display: none; }
 
+    /* Список слов главы */
+    #words-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 800;
+    }
+
+    #words-backdrop.visible { display: block; }
+
+    #words-panel {
+      position: absolute;
+      inset: 50px;
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    #words-panel h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    #words-panel h2 small { color: #888; font-weight: normal; font-size: 13px; margin-left: 8px; }
+
+    #words-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+
+    #words-close:hover { color: #fff; }
+
+    #words-empty { color: #888; font-style: italic; }
+
+    .word-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid #333;
+      font-size: 14px;
+    }
+
+    .word-row .w { color: #fff; font-weight: 600; min-width: 30%; }
+    .word-row .t { color: #b0e0b0; flex: 1; }
+    .word-row .h { color: #888; font-size: 12px; white-space: nowrap; }
+    .word-row.hard .w { color: #f0d0a0; }
+
     /* Подсветка известных слов (CSS Custom Highlight API) */
     ::highlight(tmr-known) {
       text-decoration: underline dotted #5a8a6a;
@@ -249,13 +310,18 @@
       text-align: center;
     }
 
-    #translator-select {
-      background: #333;
-      color: #e0e0e0;
-      border: 1px solid #555;
-      border-radius: 4px;
-      padding: 6px 10px;
+    .translator-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .translator-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 14px;
+      color: #e0e0e0;
       cursor: pointer;
     }
   </style>
@@ -269,6 +335,14 @@
     <button id="next-top" onclick="go(+1)">&#9654;</button>
     <button onclick="openSettings()" title="Настройки">&#9881;</button>
     <button id="fs-btn" onclick="toggleFullscreen()" title="Полный экран">&#x26F6;</button>
+  </div>
+
+  <div id="words-backdrop" onclick="handleWordsBackdropClick(event)">
+    <div id="words-panel">
+      <h2>Слова главы<small id="words-count"></small></h2>
+      <button id="words-close" onclick="closeChapterWords()">&#x2715;</button>
+      <div id="words-list"></div>
+    </div>
   </div>
 
   <div id="settings-backdrop" onclick="handleBackdropClick(event)">
@@ -285,10 +359,15 @@
 
       <div class="settings-row">
         <span class="settings-label">Переводчик</span>
-        <select id="translator-select" onchange="changeTranslator(this.value)">
-          <option value="google">Google</option>
-          <option value="mymemory">MyMemory</option>
-        </select>
+        <span class="translator-options">
+          <label><input type="checkbox" value="google" onchange="changeTranslators()"> Google</label>
+          <label><input type="checkbox" value="mymemory" onchange="changeTranslators()"> MyMemory</label>
+        </span>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-label">Слова из словаря в этой главе</span>
+        <button onclick="closeSettings(); openChapterWords()">Показать</button>
       </div>
 
       <div class="settings-row">
@@ -318,16 +397,37 @@
 
   <script>
     // ── Dictionary ──────────────────────────────────────────────
-    const TRANSLATOR_KEY = 'tmr-translator';
-    let translator = localStorage.getItem(TRANSLATOR_KEY) || 'google';
+    // Выбранные переводчики: массив из 'google' / 'mymemory', может быть пустым.
+    // Пустой список = только кэш, запросов в сеть нет.
+    const TRANSLATORS_KEY = 'tmr-translators';
+    const LEGACY_TRANSLATOR_KEY = 'tmr-translator';  // старый формат: одна строка
+    const ALL_TRANSLATORS = ['google', 'mymemory'];
 
-    function changeTranslator(val) {
-      translator = val;
-      localStorage.setItem(TRANSLATOR_KEY, val);
+    function loadTranslators() {
+      try {
+        const raw = localStorage.getItem(TRANSLATORS_KEY);
+        if (raw !== null) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) return arr.filter(t => ALL_TRANSLATORS.includes(t));
+        }
+      } catch { }
+      const legacy = localStorage.getItem(LEGACY_TRANSLATOR_KEY);
+      return ALL_TRANSLATORS.includes(legacy) ? [legacy] : ['google'];
+    }
+
+    let translators = loadTranslators();
+
+    function translatorCheckboxes() {
+      return [...document.querySelectorAll('.translator-options input[type=checkbox]')];
+    }
+
+    function changeTranslators() {
+      translators = translatorCheckboxes().filter(cb => cb.checked).map(cb => cb.value);
+      localStorage.setItem(TRANSLATORS_KEY, JSON.stringify(translators));
     }
 
     function initTranslatorSelect() {
-      document.getElementById('translator-select').value = translator;
+      translatorCheckboxes().forEach(cb => { cb.checked = translators.includes(cb.value); });
     }
 
     const DICT_PREFIX = 'tmr-dict-';
@@ -340,13 +440,22 @@
     const LEGACY_TS = '2026-10-26T00:00:00';
 
     // Ключи записи, которые не являются переводчиками (служебные поля)
-    const DICT_META_KEYS = new Set(['hits']);
+    const DICT_META_KEYS = new Set(['hits', 'first', 'last']);
+    const DICT_PROVIDERS = ['google', 'mymemory', 'unk'];
+
+    function validTs(v) {
+      return typeof v === 'string' && !isNaN(new Date(v)) ? v : null;
+    }
 
     // Приводит запись к актуальному формату:
-    //   { google: { text, ts }, mymemory: { text, ts }, unk: { text, ts }, hits: N }
+    //   { google: { text, ts }, mymemory: { text, ts }, unk: { text, ts },
+    //     hits: N, first: ISO, last: ISO }
+    //   ts    — когда получен перевод от этого переводчика
+    //   first — когда слово впервые добавлено в словарь
+    //   last  — когда слово последний раз смотрели (обновляется при каждом показе)
+    //   hits  — сколько раз смотрели
     // Старые форматы: строка -> { unk: ... };  { google: "текст" } -> { google: { text, ts: LEGACY_TS } }
     // Если есть известный перевод (google/mymemory), неизвестный (unk) удаляется.
-    // hits — сколько раз слово смотрели в словаре.
     function normalizeDictEntry(parsed) {
       const obj = typeof parsed === 'string' ? { unk: parsed } : (parsed || {});
       let changed = typeof parsed === 'string';
@@ -355,24 +464,39 @@
         if (DICT_META_KEYS.has(k)) continue;
         if (!v) { changed = true; continue; }
         if (typeof v === 'string') { out[k] = { text: v, ts: LEGACY_TS }; changed = true; }
-        else if (v.text) out[k] = { text: v.text, ts: v.ts || LEGACY_TS };
+        else if (v.text) out[k] = { text: v.text, ts: validTs(v.ts) || LEGACY_TS };
         else changed = true;
       }
       if (out.unk && (out.google || out.mymemory)) { delete out.unk; changed = true; }
+
       const hits = Number(obj.hits);
       if (Number.isInteger(hits) && hits > 0) out.hits = hits;
+
+      // first: явное значение, иначе самая ранняя дата перевода, иначе LEGACY_TS
+      const providerTs = DICT_PROVIDERS.map(p => out[p]?.ts).filter(Boolean).sort();
+      const first = validTs(obj.first) || providerTs[0] || LEGACY_TS;
+      if (first !== obj.first) changed = true;
+      out.first = first;
+
+      // last: явное значение, иначе самая поздняя дата перевода, иначе first
+      const last = validTs(obj.last) || providerTs[providerTs.length - 1] || first;
+      if (last !== obj.last) changed = true;
+      out.last = last < first ? first : last;
+
       return { entry: out, changed };
     }
 
-    // Увеличивает счётчик обращений к слову и возвращает обновлённую запись
+    // Фиксирует обращение к слову: hits++ и last = сейчас. Возвращает обновлённую запись.
     function dictBumpHits(word) {
       const entry = dictFromCache(word);
       if (!entry) return null;
       entry.hits = (entry.hits || 0) + 1;
+      entry.last = new Date().toISOString();
       localStorage.setItem(dictCacheKey(word), JSON.stringify(entry));
       knownIndex = null;
       return entry;
     }
+
 
     function dictFromCache(word) {
       try {
@@ -454,15 +578,25 @@
       return decodeHtmlEntities(raw);
     }
 
+    const FETCHERS = { google: fetchFromGoogle, mymemory: fetchFromMyMemory };
+
+    // Запрашивает перевод у всех выбранных переводчиков, которых ещё нет в кэше.
+    // Возвращает запись словаря (со всеми переводами, включая кэшированные от невыбранных).
+    // Ошибка только если в итоге нет ни одного перевода.
     async function fetchTranslation(word) {
-      const cached = dictFromCache(word);
-      if (cached?.[translator]?.text) return dictBumpHits(word);
+      const cached = dictFromCache(word) || {};
+      const missing = translators.filter(t => !cached[t]?.text);
 
-      const text = translator === 'mymemory'
-        ? await fetchFromMyMemory(word)
-        : await fetchFromGoogle(word);
+      const results = await Promise.allSettled(missing.map(t => FETCHERS[t](word)));
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled') dictToCache(word, missing[i], r.value);
+      });
 
-      dictToCache(word, translator, text);
+      const entry = dictFromCache(word);
+      const hasAny = entry && DICT_PROVIDERS.some(p => entry[p]?.text);
+      if (!hasAny) {
+        throw new Error(translators.length ? 'no translation' : 'no translator selected');
+      }
       return dictBumpHits(word);
     }
 
@@ -509,37 +643,31 @@
       if (!highlightOk) cb.title = 'Браузер не поддерживает CSS Highlight API';
     }
 
+    // Индекс словаря для поиска в тексте: { single: Map<word, info>, multi: [[phrase, info], ...] }
+    // info = { hits }
     function buildKnownIndex() {
       const single = new Map(), multi = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key.startsWith(DICT_PREFIX)) continue;
         const phrase = key.slice(DICT_PREFIX.length);
-        let hits = 0;
-        try { hits = Number(JSON.parse(localStorage.getItem(key))?.hits) || 0; } catch { }
-        if (phrase.includes(' ')) multi.push([phrase, hits]);
-        else single.set(phrase, hits);
+        let info = { hits: 0 };
+        try {
+          const e = JSON.parse(localStorage.getItem(key));
+          info = { hits: Number(e?.hits) || 0 };
+        } catch { }
+        if (phrase.includes(' ')) multi.push([phrase, info]);
+        else single.set(phrase, info);
       }
       return { single, multi };
     }
 
-    function applyHighlights() {
-      if (!highlightOk) return;
-      CSS.highlights.delete('tmr-known');
-      CSS.highlights.delete('tmr-hard');
-      if (!highlightOn) return;
-
+    // Обходит текст главы и вызывает onMatch(node, start, end, phrase, info)
+    // для каждого вхождения слова или фразы из словаря.
+    function scanChapterText(onMatch) {
       if (!knownIndex) knownIndex = buildKnownIndex();
       const { single, multi } = knownIndex;
       if (!single.size && !multi.length) return;
-
-      const known = new Highlight(), hard = new Highlight();
-      const addRange = (node, start, end, hits) => {
-        const r = new Range();
-        r.setStart(node, start);
-        r.setEnd(node, end);
-        (hits >= HARD_HITS ? hard : known).add(r);
-      };
 
       const walker = document.createTreeWalker(document.getElementById('content'), NodeFilter.SHOW_TEXT);
       const wordRe = /[a-zA-Z][a-zA-Z'-]*/g;
@@ -554,26 +682,108 @@
         wordRe.lastIndex = 0;
         while ((m = wordRe.exec(text))) {
           const w = m[0].replace(/^['-]+|['-]+$/g, '').toLowerCase();
-          const hits = single.get(w);
-          if (hits === undefined) continue;
-          addRange(node, m.index, m.index + m[0].length, hits);
+          const info = single.get(w);
+          if (info) onMatch(node, m.index, m.index + m[0].length, w, info);
         }
 
         // Фразы из нескольких слов
-        for (const [phrase, hits] of multi) {
+        for (const [phrase, info] of multi) {
           let idx = lower.indexOf(phrase);
           while (idx !== -1) {
             const before = lower[idx - 1], after = lower[idx + phrase.length];
             const boundaryOk = !(before && /[a-z]/.test(before)) && !(after && /[a-z]/.test(after));
-            if (boundaryOk) addRange(node, idx, idx + phrase.length, hits);
+            if (boundaryOk) onMatch(node, idx, idx + phrase.length, phrase, info);
             idx = lower.indexOf(phrase, idx + phrase.length);
           }
         }
       }
+    }
 
+    function applyHighlights() {
+      if (!highlightOk) return;
+      CSS.highlights.delete('tmr-known');
+      CSS.highlights.delete('tmr-hard');
+      if (!highlightOn) return;
+
+      const known = new Highlight(), hard = new Highlight();
+      scanChapterText((node, start, end, phrase, info) => {
+        const r = new Range();
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        (info.hits >= HARD_HITS ? hard : known).add(r);
+      });
       CSS.highlights.set('tmr-known', known);
       CSS.highlights.set('tmr-hard', hard);
     }
+
+    // ── Список слов главы ───────────────────────────────────────
+    function formatShortDate(ts) {
+      const d = new Date(ts);
+      if (isNaN(d)) return '';
+      return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function openChapterWords() {
+      // Собираем слова в порядке первого появления в главе
+      const seen = new Map();  // phrase -> count in chapter
+      scanChapterText((node, start, end, phrase) => {
+        seen.set(phrase, (seen.get(phrase) || 0) + 1);
+      });
+
+      const list = document.getElementById('words-list');
+      document.getElementById('words-count').textContent = `${currentN} · ${seen.size}`;
+      list.innerHTML = '';
+
+      if (!seen.size) {
+        list.innerHTML = '<div id="words-empty">В этой главе нет слов из словаря.</div>';
+      }
+
+      for (const [phrase, count] of seen) {
+        const entry = dictFromCache(phrase);
+        if (!entry) continue;
+        const prov = DICT_PROVIDERS.find(p => entry[p]?.text);
+        const row = document.createElement('div');
+        row.className = 'word-row' + ((entry.hits || 0) >= HARD_HITS ? ' hard' : '');
+
+        const w = document.createElement('span');
+        w.className = 'w';
+        w.textContent = phrase;
+
+        const t = document.createElement('span');
+        t.className = 't';
+        t.textContent = prov ? entry[prov].text : '';
+
+        const h = document.createElement('span');
+        h.className = 'h';
+        const parts = [];
+        if (count > 1) parts.push(`в главе ×${count}`);
+        if (entry.hits) parts.push(`смотрел ×${entry.hits}`);
+        parts.push(`${formatShortDate(entry.first)} → ${formatShortDate(entry.last)}`);
+        h.textContent = parts.join(' · ');
+
+        row.append(w, t, h);
+        list.appendChild(row);
+      }
+
+      document.getElementById('words-backdrop').classList.add('visible');
+    }
+
+    function closeChapterWords() {
+      document.getElementById('words-backdrop').classList.remove('visible');
+    }
+
+    function handleWordsBackdropClick(e) {
+      if (e.target === document.getElementById('words-backdrop')) closeChapterWords();
+    }
+
+    // Как и панель настроек: касания внутри списка не должны доходить до читалки
+    {
+      const wb = document.getElementById('words-backdrop');
+      ['touchstart', 'touchend', 'touchmove', 'click'].forEach(evt => {
+        wb.addEventListener(evt, e => e.stopPropagation(), { capture: false });
+      });
+    }
+    // ── End Список слов главы ───────────────────────────────────
 
     // Контекст текущего выделения
     let ctx = null;  // { text, selStart, selEnd, sentStart, sentEnd, tapX, tapY }
@@ -662,8 +872,11 @@
         popTrans.className = '';
         popHits.textContent = obj?.hits > 1 ? `×${obj.hits}` : '';
         applyHighlights();
-      }).catch(() => {
-        popTrans.textContent = 'ошибка перевода';
+      }).catch(err => {
+        if (selPhrase() !== phrase) return;
+        popTrans.textContent = err?.message === 'no translator selected'
+          ? 'нет в словаре, переводчик не выбран'
+          : 'ошибка перевода';
         popTrans.className = 'error';
       });
     }
