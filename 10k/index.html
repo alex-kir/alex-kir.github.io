@@ -205,18 +205,11 @@
     .word-row .w { color: #fff; font-weight: 600; min-width: 30%; }
     .word-row .t { color: #b0e0b0; flex: 1; }
     .word-row .h { color: #888; font-size: 12px; white-space: nowrap; }
-    .word-row.hard .w { color: #f0d0a0; }
 
     /* Подсветка известных слов (CSS Custom Highlight API) */
     ::highlight(tmr-known) {
       text-decoration: underline dotted #5a8a6a;
       text-underline-offset: 3px;
-    }
-
-    ::highlight(tmr-hard) {
-      text-decoration: underline solid #d09a40;
-      text-underline-offset: 3px;
-      color: #f0d0a0;
     }
 
     #dict-translation {
@@ -625,7 +618,6 @@
 
     // ── Подсветка известных слов (CSS Custom Highlight API) ─────
     const HIGHLIGHT_KEY = 'tmr-highlight';
-    const HARD_HITS = 3;   // с этого числа обращений слово считается «трудным»
     const highlightOk = typeof Highlight !== 'undefined' && typeof CSS !== 'undefined' && CSS.highlights;
     let highlightOn = localStorage.getItem(HIGHLIGHT_KEY) !== '0';
     let knownIndex = null;  // { single: Map<word, hits>, multi: [[phrase, hits], ...] }
@@ -702,18 +694,16 @@
     function applyHighlights() {
       if (!highlightOk) return;
       CSS.highlights.delete('tmr-known');
-      CSS.highlights.delete('tmr-hard');
       if (!highlightOn) return;
 
-      const known = new Highlight(), hard = new Highlight();
-      scanChapterText((node, start, end, phrase, info) => {
+      const known = new Highlight();
+      scanChapterText((node, start, end) => {
         const r = new Range();
         r.setStart(node, start);
         r.setEnd(node, end);
-        (info.hits >= HARD_HITS ? hard : known).add(r);
+        known.add(r);
       });
       CSS.highlights.set('tmr-known', known);
-      CSS.highlights.set('tmr-hard', hard);
     }
 
     // ── Список слов главы ───────────────────────────────────────
@@ -743,7 +733,7 @@
         if (!entry) continue;
         const prov = DICT_PROVIDERS.find(p => entry[p]?.text);
         const row = document.createElement('div');
-        row.className = 'word-row' + ((entry.hits || 0) >= HARD_HITS ? ' hard' : '');
+        row.className = 'word-row';
 
         const w = document.createElement('span');
         w.className = 'w';
@@ -1045,11 +1035,15 @@
       if (paras[index]) paras[index].scrollIntoView({ block: 'start' });
     }
 
+    // Подпись в шапке: внутри индекс параграфа с нуля, людям показываем с единицы
+    function setPageLabel(n, para) {
+      document.getElementById('page-top').textContent = n + ' · §' + ((para || 0) + 1);
+    }
+
     function setNav(n, hasNext, para) {
       document.getElementById('prev-top').disabled = n <= 1;
       document.getElementById('next-top').disabled = !hasNext;
-      const paraStr = (para > 0) ? ' · §' + para : '';
-      document.getElementById('page-top').textContent = n + paraStr;
+      setPageLabel(n, para);
     }
 
     async function load(n, restorePara) {
@@ -1069,22 +1063,22 @@
         return;
       }
 
+      // Сначала встаём на сохранённый параграф, чтобы не ждать пробу следующей главы
+      if (restorePara > 0) {
+        scrollToPara(restorePara);
+      } else {
+        el.scrollTo(0, 0);
+      }
+      setNav(n, false, restorePara);
+      saveProgress(n, restorePara || 0);
+
       // probe next chapter
       let hasNext = false;
       try {
         const probe = await fetch(`step2/tmr-chapter-${n + 1}.html`, { method: 'HEAD' });
         hasNext = probe.ok;
       } catch { }
-
-      setNav(n, hasNext, restorePara);
-
-      if (restorePara > 0) {
-        scrollToPara(restorePara);
-      } else {
-        document.getElementById('content').scrollTo(0, 0);
-      }
-
-      saveProgress(n, restorePara || 0);
+      document.getElementById('next-top').disabled = !hasNext;
     }
 
     function go(delta) {
@@ -1102,7 +1096,7 @@
         const para = currentParaIndex();
         setHash(currentN, para, true);
         saveProgress(currentN, para);
-        document.getElementById('page-top').textContent = currentN + (para > 0 ? ' · §' + para : '');
+        setPageLabel(currentN, para);
       }, 300);
     });
 
