@@ -146,6 +146,32 @@
     #dict-speak:hover { border-color: #888; }
     #dict-speak.hidden { display: none; }
 
+    /* Ряд под словом: произнести + перевод (или кнопки переводчиков) */
+    /* Колонка: сверху кнопка «произнести» на всю ширину, под ней список переводчиков */
+    #dict-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .dict-prov {
+      background: none;
+      border: 1px solid #555;
+      color: #aaa;
+      border-radius: 4px;
+      padding: 2px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .dict-prov:hover { color: #fff; border-color: #888; }
+    .dict-prov:disabled { opacity: 0.5; cursor: default; }
+    .dict-prov.cached { color: #fff; }                      /* перевод уже в словаре */
+    .dict-prov.error  { color: #e08080; border-color: #a05050; }
+
+    .dict-line { white-space: pre-line; }
+
     /* Список слов главы */
     #words-backdrop {
       display: none;
@@ -213,13 +239,18 @@
     }
 
     #dict-translation {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       color: #b0e0b0;
-      min-height: 18px;
-      white-space: pre-line;
+      min-height: 26px;
       text-align: left;
     }
 
-    #dict-translation.loading { color: #888; font-style: italic; }
+    /* Кнопки переводчиков растянуты на ширину колонки, текст слева — как пункты списка */
+    #dict-translation .dict-prov { text-align: left; }
+
     #dict-translation.error   { color: #e08080; font-style: italic; }
 
     /* Settings overlay */
@@ -379,10 +410,12 @@
     <div id="dict-word-row">
       <button id="dict-btn-left" onclick="expandSel(-1)">&#x25C1;|</button>
       <span id="dict-word"><span id="dict-word-text"></span><span id="dict-hits"></span></span>
-      <button id="dict-speak" onclick="speakPhrase()" title="Произнести">&#x1F50A;</button>
       <button id="dict-btn-right" onclick="expandSel(+1)">|&#x25B7;</button>
     </div>
-    <div id="dict-translation"></div>
+    <div id="dict-body">
+      <button id="dict-speak" onclick="speakPhrase()" title="Произнести">&#x1F50A;</button>
+      <div id="dict-translation"></div>
+    </div>
   </div>
 
   <div id="content">Загрузка…</div>
@@ -479,12 +512,20 @@
       return { entry: out, changed };
     }
 
-    // Фиксирует обращение к слову: hits++ и last = сейчас. Возвращает обновлённую запись.
+    // Повторное обращение к слову в течение этого интервала не увеличивает hits
+    const HIT_COOLDOWN_MS = 60 * 1000;
+
+    // Фиксирует обращение к слову: last = сейчас, hits++ (если с прошлого обращения
+    // прошло больше HIT_COOLDOWN_MS). Возвращает обновлённую запись.
     function dictBumpHits(word) {
       const entry = dictFromCache(word);
       if (!entry) return null;
-      entry.hits = (entry.hits || 0) + 1;
-      entry.last = new Date().toISOString();
+      const now = new Date();
+      const sinceLast = now - new Date(entry.last);
+      if (!entry.hits || isNaN(sinceLast) || sinceLast >= HIT_COOLDOWN_MS) {
+        entry.hits = (entry.hits || 0) + 1;
+      }
+      entry.last = now.toISOString();
       localStorage.setItem(dictCacheKey(word), JSON.stringify(entry));
       knownIndex = null;
       return entry;
@@ -508,14 +549,6 @@
       const { entry } = normalizeDictEntry(existing);
       localStorage.setItem(dictCacheKey(word), JSON.stringify(entry));
       knownIndex = null;
-    }
-
-    function formatTranslations(obj) {
-      const labels = { google: 'G', mymemory: 'M', unk: 'U' };
-      return Object.entries(obj)
-        .filter(([, v]) => v?.text)
-        .map(([k, v]) => `${labels[k] ?? k}: ${v.text}`)
-        .join('\n');
     }
 
     // Экспорт всего словаря из localStorage в JSON-файл
@@ -573,24 +606,19 @@
 
     const FETCHERS = { google: fetchFromGoogle, mymemory: fetchFromMyMemory };
 
-    // Запрашивает перевод у всех выбранных переводчиков, которых ещё нет в кэше.
-    // Возвращает запись словаря (со всеми переводами, включая кэшированные от невыбранных).
-    // Ошибка только если в итоге нет ни одного перевода.
-    async function fetchTranslation(word) {
-      const cached = dictFromCache(word) || {};
-      const missing = translators.filter(t => !cached[t]?.text);
+    // Подписи переводчиков в попапе: кнопка и префикс строки перевода
+    const PROVIDER_NAMES  = { google: 'google', mymemory: 'memory', unk: 'другое' };
+    const PROVIDER_LABELS = { google: 'G', mymemory: 'M', unk: 'U' };
 
-      const results = await Promise.allSettled(missing.map(t => FETCHERS[t](word)));
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled') dictToCache(word, missing[i], r.value);
-      });
-
-      const entry = dictFromCache(word);
-      const hasAny = entry && DICT_PROVIDERS.some(p => entry[p]?.text);
-      if (!hasAny) {
-        throw new Error(translators.length ? 'no translation' : 'no translator selected');
-      }
-      return dictBumpHits(word);
+    // Возвращает перевод одного переводчика: из кэша или запросом (с записью в кэш).
+    async function fetchProvider(word, provider) {
+      const cached = dictFromCache(word)?.[provider]?.text;
+      if (cached) return cached;
+      const fetcher = FETCHERS[provider];
+      if (!fetcher) throw new Error('no translation');
+      const text = await fetcher(word);
+      dictToCache(word, provider, text);
+      return text;
     }
 
     // ── Произношение (Web Speech API) ───────────────────────────
@@ -844,31 +872,97 @@
     const btnSpeak = document.getElementById('dict-speak');
     if (!speechOk) btnSpeak.classList.add('hidden');
 
+    // Состояние показа перевода для текущей фразы в попапе.
+    // Перевод не показывается сразу: только по нажатию кнопки переводчика,
+    // чтобы прослушивание произношения не засчитывалось как обращение к словарю.
+    let revealed = new Set();   // переводчики, чей перевод уже раскрыт
+    let failed   = new Set();   // переводчики, у которых запрос не удался
+    let loading  = new Set();   // переводчики, у которых запрос идёт сейчас
+    let counted  = false;       // обращение к слову уже засчитано (hits++)
+
+    function setHits(entry) {
+      popHits.textContent = entry?.hits > 1 ? `×${entry.hits}` : '';
+    }
+
+    // Показывает выбранную фразу и кнопки переводчиков (без перевода и без hits++)
     function translateAndShow() {
       const phrase = selPhrase();
+      revealed = new Set();
+      failed   = new Set();
+      loading  = new Set();
+      counted  = false;
       popWord.textContent = phrase;
-      popHits.textContent = '';
-      popTrans.textContent = '…';
-      popTrans.className = 'loading';
+      setHits(dictFromCache(phrase));
       // Кнопки: отключить если дошли до границы предложения
       btnLeft.disabled  = ctx.selStart <= ctx.sentStart;
       btnRight.disabled = ctx.selEnd   >= ctx.sentEnd;
+      renderTranslation();
       popup.classList.add('visible');
+    }
 
-      fetchTranslation(phrase).then(obj => {
+    // Перерисовывает область перевода: раскрытые переводы строками,
+    // остальные доступные переводчики — кнопками
+    function renderTranslation() {
+      const phrase = selPhrase();
+      const entry = dictFromCache(phrase);
+      popTrans.replaceChildren();
+      popTrans.className = '';
+
+      // Доступны: выбранные в настройках переводчики + те, чей перевод уже есть в кэше
+      const available = DICT_PROVIDERS.filter(p => translators.includes(p) || entry?.[p]?.text);
+      if (!available.length) {
+        popTrans.textContent = 'нет в словаре, переводчик не выбран';
+        popTrans.className = 'error';
+        return;
+      }
+
+      // Вертикальный список: по строке на переводчик. Пока перевод не раскрыт — кнопка,
+      // после раскрытия кнопка исчезает и на её месте выводится перевод.
+      for (const p of available) {
+        if (revealed.has(p) && entry?.[p]?.text) {
+          const line = document.createElement('div');
+          line.className = 'dict-line';
+          line.textContent = `${PROVIDER_LABELS[p] ?? p}: ${entry[p].text}`;
+          popTrans.append(line);
+          continue;
+        }
+        const btn = document.createElement('button');
+        btn.className = 'dict-prov';
+        btn.textContent = PROVIDER_NAMES[p] ?? p;
+        if (entry?.[p]?.text) btn.classList.add('cached');   // перевод уже есть — белым
+        if (loading.has(p)) { btn.textContent += ' …'; btn.disabled = true; }
+        else if (failed.has(p)) { btn.textContent += ' ✗'; btn.classList.add('error'); btn.title = 'ошибка перевода, нажмите ещё раз'; }
+        btn.onclick = () => revealTranslation(p);
+        popTrans.append(btn);
+      }
+    }
+
+    // Нажатие на кнопку переводчика: получить перевод, засчитать обращение, показать
+    async function revealTranslation(provider) {
+      const phrase = selPhrase();
+      if (!phrase || loading.has(provider)) return;
+      loading.add(provider);
+      failed.delete(provider);
+      renderTranslation();
+      try {
+        await fetchProvider(phrase, provider);
+      } catch {
         // Попап мог переключиться на другую фразу, пока шёл запрос
         if (selPhrase() !== phrase) return;
-        popTrans.textContent = formatTranslations(obj);
-        popTrans.className = '';
-        popHits.textContent = obj?.hits > 1 ? `×${obj.hits}` : '';
+        loading.delete(provider);
+        failed.add(provider);
+        renderTranslation();
+        return;
+      }
+      if (selPhrase() !== phrase) return;
+      loading.delete(provider);
+      revealed.add(provider);
+      if (!counted) {
+        counted = true;
+        setHits(dictBumpHits(phrase));
         applyHighlights();
-      }).catch(err => {
-        if (selPhrase() !== phrase) return;
-        popTrans.textContent = err?.message === 'no translator selected'
-          ? 'нет в словаре, переводчик не выбран'
-          : 'ошибка перевода';
-        popTrans.className = 'error';
-      });
+      }
+      renderTranslation();
     }
 
     function showPopupAt(x, y) {
@@ -910,7 +1004,7 @@
       if (dx > 10 || dy > 10) { hidePopup(); return; }  // was a scroll
 
       // игнорировать если касание началось вне контента (но не в самом попапе)
-      if (popup.contains(touchStartTarget)) return;
+      if (popup.contains(touchStartTarget) || e.composedPath().includes(popup)) return;
       if (!document.getElementById('content').contains(touchStartTarget)) return;
 
       if (popup.classList.contains('visible')) { hidePopup(); return; }
@@ -921,7 +1015,9 @@
     // Desktop: click
     document.addEventListener('click', e => {
       if ('ontouchstart' in window) return;
-      if (popup.contains(e.target)) return;  // клик внутри попапа — не трогаем
+      // клик внутри попапа — не трогаем. composedPath, а не contains: кнопка переводчика
+      // перерисовывается в своём onclick и к моменту всплытия уже удалена из DOM
+      if (e.composedPath().includes(popup)) return;
       if (popup.classList.contains('visible')) { hidePopup(); return; }
       showPopupAt(e.clientX, e.clientY);
     });
