@@ -75,6 +75,10 @@
       line-height: 1.7;
       margin: 0.8em 0;
       touch-action: manipulation;
+      text-align: justify;
+      /* переносы, чтобы на узком экране не было больших дыр между словами */
+      /* -webkit-hyphens: auto;
+      hyphens: auto; */
     }
 
     /* Dictionary popup */
@@ -94,7 +98,9 @@
       text-align: center;
     }
 
-    #dict-popup.visible { display: block; }
+    #dict-popup.visible {
+      display: block;
+    }
 
     #dict-word-row {
       display: flex;
@@ -110,7 +116,8 @@
       flex: 1;
     }
 
-    #dict-btn-left, #dict-btn-right {
+    #dict-btn-left,
+    #dict-btn-right {
       background: none;
       border: 1px solid #555;
       color: #aaa;
@@ -122,8 +129,17 @@
       line-height: 1.4;
     }
 
-    #dict-btn-left:hover, #dict-btn-right:hover { color: #fff; border-color: #888; }
-    #dict-btn-left:disabled, #dict-btn-right:disabled { opacity: 0.2; cursor: default; }
+    #dict-btn-left:hover,
+    #dict-btn-right:hover {
+      color: #fff;
+      border-color: #888;
+    }
+
+    #dict-btn-left:disabled,
+    #dict-btn-right:disabled {
+      opacity: 0.2;
+      cursor: default;
+    }
 
     #dict-hits {
       font-size: 12px;
@@ -143,8 +159,13 @@
       line-height: 1.4;
     }
 
-    #dict-speak:hover { border-color: #888; }
-    #dict-speak.hidden { display: none; }
+    #dict-speak:hover {
+      border-color: #888;
+    }
+
+    #dict-speak.hidden {
+      display: none;
+    }
 
     /* Ряд под словом: произнести + перевод (или кнопки переводчиков) */
     /* Колонка: сверху кнопка «произнести» на всю ширину, под ней список переводчиков */
@@ -165,12 +186,29 @@
       line-height: 1.4;
     }
 
-    .dict-prov:hover { color: #fff; border-color: #888; }
-    .dict-prov:disabled { opacity: 0.5; cursor: default; }
-    .dict-prov.cached { color: #fff; }                      /* перевод уже в словаре */
-    .dict-prov.error  { color: #e08080; border-color: #a05050; }
+    .dict-prov:hover {
+      color: #fff;
+      border-color: #888;
+    }
 
-    .dict-line { white-space: pre-line; }
+    .dict-prov:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .dict-prov.cached {
+      color: #fff;
+    }
+
+    /* перевод уже в словаре */
+    .dict-prov.error {
+      color: #e08080;
+      border-color: #a05050;
+    }
+
+    .dict-line {
+      white-space: pre-line;
+    }
 
     /* Список слов главы */
     #words-backdrop {
@@ -181,7 +219,9 @@
       z-index: 800;
     }
 
-    #words-backdrop.visible { display: block; }
+    #words-backdrop.visible {
+      display: block;
+    }
 
     #words-panel {
       position: absolute;
@@ -200,7 +240,12 @@
       color: #fff;
     }
 
-    #words-panel h2 small { color: #888; font-weight: normal; font-size: 13px; margin-left: 8px; }
+    #words-panel h2 small {
+      color: #888;
+      font-weight: normal;
+      font-size: 13px;
+      margin-left: 8px;
+    }
 
     #words-close {
       position: absolute;
@@ -215,9 +260,14 @@
       padding: 4px 8px;
     }
 
-    #words-close:hover { color: #fff; }
+    #words-close:hover {
+      color: #fff;
+    }
 
-    #words-empty { color: #888; font-style: italic; }
+    #words-empty {
+      color: #888;
+      font-style: italic;
+    }
 
     .word-row {
       display: flex;
@@ -228,9 +278,22 @@
       font-size: 14px;
     }
 
-    .word-row .w { color: #fff; font-weight: 600; min-width: 30%; }
-    .word-row .t { color: #b0e0b0; flex: 1; }
-    .word-row .h { color: #888; font-size: 12px; white-space: nowrap; }
+    .word-row .w {
+      color: #fff;
+      font-weight: 600;
+      min-width: 30%;
+    }
+
+    .word-row .t {
+      color: #b0e0b0;
+      flex: 1;
+    }
+
+    .word-row .h {
+      color: #888;
+      font-size: 12px;
+      white-space: nowrap;
+    }
 
     /* Подсветка известных слов (CSS Custom Highlight API) */
     ::highlight(tmr-known) {
@@ -249,9 +312,14 @@
     }
 
     /* Кнопки переводчиков растянуты на ширину колонки, текст слева — как пункты списка */
-    #dict-translation .dict-prov { text-align: left; }
+    #dict-translation .dict-prov {
+      text-align: left;
+    }
 
-    #dict-translation.error   { color: #e08080; font-style: italic; }
+    #dict-translation.error {
+      color: #e08080;
+      font-style: italic;
+    }
 
     /* Settings overlay */
     #settings-backdrop {
@@ -607,7 +675,7 @@
     const FETCHERS = { google: fetchFromGoogle, mymemory: fetchFromMyMemory };
 
     // Подписи переводчиков в попапе: кнопка и префикс строки перевода
-    const PROVIDER_NAMES  = { google: 'google', mymemory: 'memory', unk: 'другое' };
+    const PROVIDER_NAMES = { google: 'google', mymemory: 'memory', unk: 'другое' };
     const PROVIDER_LABELS = { google: 'G', mymemory: 'M', unk: 'U' };
 
     // Возвращает перевод одного переводчика: из кэша или запросом (с записью в кэш).
@@ -627,8 +695,8 @@
     function pickEnglishVoice() {
       const voices = speechSynthesis.getVoices();
       return voices.find(v => /^en[-_]US/i.test(v.lang))
-          || voices.find(v => /^en/i.test(v.lang))
-          || null;
+        || voices.find(v => /^en/i.test(v.lang))
+        || null;
     }
 
     function speakPhrase() {
@@ -863,11 +931,11 @@
       translateAndShow();
     }
 
-    const popup    = document.getElementById('dict-popup');
-    const popWord  = document.getElementById('dict-word-text');
-    const popHits  = document.getElementById('dict-hits');
+    const popup = document.getElementById('dict-popup');
+    const popWord = document.getElementById('dict-word-text');
+    const popHits = document.getElementById('dict-hits');
     const popTrans = document.getElementById('dict-translation');
-    const btnLeft  = document.getElementById('dict-btn-left');
+    const btnLeft = document.getElementById('dict-btn-left');
     const btnRight = document.getElementById('dict-btn-right');
     const btnSpeak = document.getElementById('dict-speak');
     if (!speechOk) btnSpeak.classList.add('hidden');
@@ -876,9 +944,9 @@
     // Перевод не показывается сразу: только по нажатию кнопки переводчика,
     // чтобы прослушивание произношения не засчитывалось как обращение к словарю.
     let revealed = new Set();   // переводчики, чей перевод уже раскрыт
-    let failed   = new Set();   // переводчики, у которых запрос не удался
-    let loading  = new Set();   // переводчики, у которых запрос идёт сейчас
-    let counted  = false;       // обращение к слову уже засчитано (hits++)
+    let failed = new Set();   // переводчики, у которых запрос не удался
+    let loading = new Set();   // переводчики, у которых запрос идёт сейчас
+    let counted = false;       // обращение к слову уже засчитано (hits++)
 
     function setHits(entry) {
       popHits.textContent = entry?.hits > 1 ? `×${entry.hits}` : '';
@@ -888,14 +956,14 @@
     function translateAndShow() {
       const phrase = selPhrase();
       revealed = new Set();
-      failed   = new Set();
-      loading  = new Set();
-      counted  = false;
+      failed = new Set();
+      loading = new Set();
+      counted = false;
       popWord.textContent = phrase;
       setHits(dictFromCache(phrase));
       // Кнопки: отключить если дошли до границы предложения
-      btnLeft.disabled  = ctx.selStart <= ctx.sentStart;
-      btnRight.disabled = ctx.selEnd   >= ctx.sentEnd;
+      btnLeft.disabled = ctx.selStart <= ctx.sentStart;
+      btnRight.disabled = ctx.selEnd >= ctx.sentEnd;
       renderTranslation();
       popup.classList.add('visible');
     }
@@ -979,12 +1047,12 @@
       const pw = popup.offsetWidth || 280, ph = popup.offsetHeight || 80;
       const gap = 12;
       let left = x - pw / 2;
-      let top  = y - ph - gap;
+      let top = y - ph - gap;
       if (top < gap) top = y + gap;
       if (left < gap) left = gap;
       if (left + pw > W - gap) left = W - pw - gap;
       popup.style.left = left + 'px';
-      popup.style.top  = top  + 'px';
+      popup.style.top = top + 'px';
     }
 
     function hidePopup() { popup.classList.remove('visible'); ctx = null; }
