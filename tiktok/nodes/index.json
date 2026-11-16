@@ -1,0 +1,58 @@
+[
+    { "group": "Конечные ноды" },
+    { "label": "Шар из точек", "file": "nodes/sphere.js" },
+    { "label": "Картинка", "file": "nodes/image.js" },
+    { "label": "Видео", "file": "nodes/video.js" },
+    { "label": "Аудио", "file": "nodes/audio.js" },
+    { "label": "Размытие области", "file": "nodes/blur.js" },
+    { "label": "Текст", "file": "nodes/text.js" },
+    { "label": "Комментарий", "file": "nodes/comment.js" },
+    {
+        "label": "Комментарий: длинный с эмодзи", "file": "nodes/comment.js", "name": "Комментарий 2",
+        "params": {
+            "username": "sasha_21011", "time": "7 нед.",
+            "text": "Андрюш, ну реально, выйди, слетай до машины 😁",
+            "likes": 0, "reply": false, "effect": "slideUp"
+        }
+    },
+    {
+        "label": "Комментарий: светлый", "file": "nodes/comment.js", "name": "Комментарий светлый",
+        "params": {
+            "cardColor": "#ffffff", "cardAlpha": 0.95,
+            "textColor": "#111111", "mutedColor": "#737373",
+            "liked": true, "effect": "fade"
+        }
+    },
+    {
+        "label": "Текст: подпись", "file": "nodes/text.js", "name": "Подпись",
+        "params": {
+            "text": "SIMULATION.DAO", "anchor": "bottom", "offset": 50,
+            "fontSize": 16, "bold": false, "letterSpacing": 6, "color": "#aaaaaa"
+        }
+    },
+
+    { "group": "Контейнеры" },
+    { "label": "Окно времени", "file": "nodes/window.js", "container": true },
+    { "label": "Easing времени", "file": "nodes/easing.js", "container": true },
+    { "label": "Появление / исчезание", "file": "nodes/fade.js", "container": true },
+    { "label": "Трансформация", "file": "nodes/transform.js", "container": true },
+
+    { "group": "Пресеты" },
+    {
+        "label": "Подпись с появлением со 2-й секунды", "file": "nodes/window.js", "container": true,
+        "name": "Окно: подпись", "params": { "start": 2 },
+        "children": [{
+            "file": "nodes/easing.js", "params": { "curve": "outQuad", "span": 1.5 },
+            "children": [{
+                "file": "nodes/fade.js", "params": { "fadeIn": 1 },
+                "children": [{
+                    "file": "nodes/text.js", "name": "Подпись",
+                    "params": {
+                        "text": "SIMULATION.DAO", "anchor": "bottom", "offset": 50,
+                        "fontSize": 16, "bold": false, "letterSpacing": 6, "color": "#aaaaaa"
+                    }
+                }]
+            }]
+        }]
+    }
+]

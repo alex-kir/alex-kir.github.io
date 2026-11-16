@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Запись анимации в файл</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+
+<body>
+
+    <div class="app">
+    <div class="stage">
+        <canvas id="mathCanvas" width="720" height="1280"></canvas>
+    </div>
+
+    <div class="side">
+        <div class="panel scene">
+            <div class="scene-row">
+                <span>Сцена:</span>
+                <input type="text" id="sceneName" placeholder="название сцены">
+                <button id="saveBtn" title="Сохранить в браузере (localStorage)">Сохранить</button>
+                <button id="newBtn" title="Новая пустая сцена">Новая</button>
+            </div>
+            <div class="scene-row">
+                <span>Сохранённые:</span>
+                <select id="savedSelect"></select>
+                <button id="loadBtn" title="Загрузить выбранную">Загрузить</button>
+                <button id="deleteBtn" class="del" title="Удалить выбранную из браузера">✕</button>
+                <button id="exportBtn" title="Скачать сцену как JSON">Экспорт</button>
+                <button id="importBtn" title="Загрузить сцену из JSON-файла">Импорт</button>
+                <input type="file" id="importFile" accept="application/json,.json" hidden>
+            </div>
+        </div>
+
+        <div class="panel nodes">
+            <div class="panel-head">
+                <h3>Ноды</h3>
+                <div class="add-row">
+                    <input type="text" id="nodeFile" placeholder="файл, напр. nodes/sphere.js">
+                    <button id="knownBtn" title="Известные ноды">&#9662;</button>
+                    <button id="addBtn" title="Добавить ноду">+</button>
+                    <div id="knownMenu" class="dropdown" hidden></div>
+                </div>
+                <div class="add-hint" id="addHint"></div>
+            </div>
+            <div id="nodeList"></div>
+        </div>
+
+        <div class="panel props">
+            <h3 id="propsTitle">Параметры</h3>
+            <div id="propsBody"></div>
+        </div>
+
+        <div class="panel playback">
+            <div class="timeline">
+                <button id="playBtn" title="Пауза / воспроизведение (пробел)">&#9654;</button>
+                <input type="range" id="timeSlider" min="0" max="10" step="0.01" value="0">
+                <span class="time" id="timeLabel">0.00 / 10.00 с</span>
+                <button id="muteBtn" title="Звук при просмотре: включить / выключить (на экспорт не влияет)">&#128266;</button>
+                <!-- Полоска ключей анимации выбранной ноды, см. src/ui/keys.js -->
+                <div id="keyRows"></div>
+            </div>
+
+            <div class="duration">
+                <label for="durationInput">Длительность, с:</label>
+                <input type="number" id="durationInput" min="0.1" step="0.5" value="10">
+                <button id="recBtn" disabled>Записать</button>
+            </div>
+        </div>
+
+        <div class="panel media" id="mediaPanel">
+            <div class="panel-head">
+                <h3>Медиа</h3>
+                <div class="media-actions">
+                    <button id="mediaAddBtn" title="Выбрать картинки, видео и звук на компьютере">Добавить файлы...</button>
+                    <button id="mediaRefreshBtn" title="Обновить список файлов из папки media/">&#8635;</button>
+                </div>
+                <div class="add-hint">Файлы хранятся в этом браузере, в сцене остаётся только имя.</div>
+                <input type="file" id="mediaFile" accept="image/*,video/*,audio/*" multiple hidden>
+            </div>
+            <div id="mediaList"></div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Строка состояния: слева сообщения приложения (src/status.js),
+         справа — сохранена ли сцена (src/ui/scene-panel.js) -->
+    <div class="status-bar" id="statusBar">
+        <span class="text" id="statusText"></span>
+        <span class="dirty" id="dirtyLabel"></span>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+
+</html>
