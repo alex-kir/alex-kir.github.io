@@ -1210,16 +1210,83 @@
       setPageLabel(n, para);
     }
 
+    function chapterUrl(n) {
+      return `chapters/chapter-${n}.fb2`;
+    }
+
+    // FB2 → DOM. Заголовки секций идут в <h4>, а не в <p>: индексы параграфов
+    // в сохранённом прогрессе считаются по '#content p' и не должны съезжать.
+    const FB2_INLINE = {
+      emphasis: 'em', strong: 'strong', sub: 'sub', sup: 'sup', strikethrough: 's', code: 'code'
+    };
+
+    function fb2Inline(src, dst) {
+      for (const node of src.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          dst.appendChild(document.createTextNode(node.nodeValue));
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const tag = FB2_INLINE[node.localName];
+          // неизвестные инлайновые теги (ссылки и т.п.) разворачиваем в текст
+          fb2Inline(node, tag ? dst.appendChild(document.createElement(tag)) : dst);
+        }
+      }
+    }
+
+    function fb2Block(src, dst) {
+      for (const node of src.children) {
+        switch (node.localName) {
+          case 'title': {
+            const h = document.createElement('h4');
+            const lines = [...node.children].filter(c => c.localName === 'p');
+            lines.forEach((line, i) => {
+              if (i > 0) h.appendChild(document.createElement('br'));
+              fb2Inline(line, h);
+            });
+            dst.appendChild(h);
+            break;
+          }
+          case 'p':
+          case 'subtitle':
+          case 'v':
+          case 'text-author': {
+            const p = document.createElement('p');
+            fb2Inline(node, p);
+            dst.appendChild(p);
+            break;
+          }
+          case 'empty-line':
+          case 'image':
+            break;
+          default:
+            // section, cite, poem, stanza, epigraph — просто спускаемся внутрь
+            fb2Block(node, dst);
+        }
+      }
+    }
+
+    function fb2ToFragment(xml) {
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      if (doc.getElementsByTagName('parsererror').length) throw new Error('bad fb2');
+      const frag = document.createDocumentFragment();
+      // только основной body; body с name="notes" и подобные пропускаем
+      const body = [...doc.documentElement.children]
+        .find(c => c.localName === 'body' && !c.hasAttribute('name'));
+      if (!body) throw new Error('no body');
+      fb2Block(body, frag);
+      return frag;
+    }
+
     async function load(n, restorePara) {
       const el = document.getElementById('content');
       el.textContent = 'Загрузка…';
       setNav(n, false);
 
       try {
-        const res = await fetch(`step2/tmr-chapter-${n}.html`);
+        const res = await fetch(chapterUrl(n));
         if (!res.ok) throw new Error('not found');
-        const html = await res.text();
-        el.innerHTML = html;
+        const frag = fb2ToFragment(await res.text());
+        el.textContent = '';
+        el.appendChild(frag);
         applyHighlights();
       } catch {
         el.textContent = `Глава ${n} не найдена.`;
@@ -1239,7 +1306,7 @@
       // probe next chapter
       let hasNext = false;
       try {
-        const probe = await fetch(`step2/tmr-chapter-${n + 1}.html`, { method: 'HEAD' });
+        const probe = await fetch(chapterUrl(n + 1), { method: 'HEAD' });
         hasNext = probe.ok;
       } catch { }
       document.getElementById('next-top').disabled = !hasNext;
